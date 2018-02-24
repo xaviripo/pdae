@@ -1,1 +1,0 @@
-"./Practica1_PAE_main.obj" "./startup_msp432p401r_ccs.obj" "./system_msp432p401r.obj" "../lib_PAE2.lib" "../msp432p401r.cmd" -llibc.a 
