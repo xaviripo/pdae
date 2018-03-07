@@ -4,6 +4,7 @@
 \usepackage{titling}
 \usepackage{hyperref}
 \usepackage{fancyhdr}
+\usepackage[headsep=1.5cm]{geometry}
  
 
 \rfoot{Page }
@@ -53,16 +54,80 @@
 % Bottom of the page
 	
 \end{titlepage} \pagebreak
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Objectius}
 % Què es vol fer a la pràctica. 
 
 \section{Recursos utilitzats}
 % Quins recursos del Microcontrolador, Placa d’Experimentació i Robot es fan servir.
+De la placa \textit{Boosterpack MK II} volem fer servir:
+
+\begin{itemize}
+    \item Entrades: el joystick, els polsadors S1 i S2
+    \item Sortides: el led RGB
+\end{itemize}
+
+De la placa d'interfície farem servir els 8 leds del port 8 (com sortida).
 
 \section{Configuració dels recursos}
 % Com s’han configurat els diferents recursos.
+\subsection{Configuració dels leds}
+Es posen els leds RGB (pins P2.6, P2.4 i P5.6 respectivament) com a sortides ($DIR = 1$) digitals ($SEL0 = SEL1 = 0$) i es posen a 0 (apagats).
+
+\begin{verbatim}
+P2DIR |=  0x50; //Pines P2.4 (G), 2.6 (R) como salidas Led (RGB)
+P5DIR |=  0x40; //Pin P5.6 (B)como salida Led (RGB)
+P2OUT &= ~0x50; //Inicializamos Led RGB a 0 (apagados)
+P5OUT &= ~0x40; //Inicializamos Led RGB a 0 (apagados)
+\end{verbatim}
+
+\subsection{Configuració dels botons}
+
+Es posen els botons com entrades ($DIR = 0$) digitals ($SEL0 = SEL1 = 0$). Volem que la transició sigui en el flanc de pujada ($IES = 0$). finalment activem les interrupcions i netegem els flags.
+
+\begin{verbatim}
+//Boton S1
+P5DIR  &= ~0x02; //Pin P5.1 como entrada
+P5SEL0 &= ~0x02; //Pin P5.1 como I/O digital,
+P5SEL1 &= ~0x02; //Pin P5.1 como I/O digital,
+P5IES  &= ~0x02; // con transicion L->H
+P5IE   |=  0x02; //Interrupciones activadas en P5.1,
+P5IFG   =     0; //Limpiamos todos los flags
+\end{verbatim}
+
+\begin{verbatim}
+//Boton S2 del MK II:
+P3DIR  &= ~0x20; //Pin P3.5 como entrada
+P3SEL0 &= ~0x20; //Pin P3.5 como I/O digital,
+P3SEL1 &= ~0x20; //Pin P3.5 como I/O digital,
+P3IES  &= ~0x20; // con transicion L->H
+P3IE   |=  0x20; //Interrupciones activadas en P3.5
+P3IFG   =     0; //Limpiamos todos los flags de las interrupciones del puerto 3
+\end{verbatim}
+
+\subsection{Configuració del joystick}
+
+De la mateixa manera que els botons, es posen els bits del joystick com entrades ($DIR = 0$) digitals ($SEL0 = SEL1 = 0$) amb transició per flanc de pujada.
+\begin{verbatim}
+//PIN 4
+P4DIR  &= ~(BIT1 + BIT5 + BIT7); //Posar com entrades,
+P4SEL0 &= ~(BIT1 + BIT5 + BIT7); //Posar a I/O digital,
+P4SEL1 &= ~(BIT1 + BIT5 + BIT7); //
+P4REN  |=   BIT1 + BIT5 + BIT7;  //Activar resistencia pullup
+P4OUT  |=   BIT1 + BIT5 + BIT7;  //
+P4IE   |=   BIT1 + BIT5 + BIT7;  //Interrupcions activadas
+P4IES  &= ~(BIT1 + BIT5 + BIT7); //Interrupcions L->H
+P4IFG   = 0;    //Netejar flags
+
+//PIN 5
+P5DIR  &= ~(BIT4 + BIT5); //Posar com entrades,
+P5SEL0 &= ~(BIT4 + BIT5); //Posar a I/O digital,
+P5SEL1 &= ~(BIT4 + BIT5); //
+P5IE   |=   BIT4 + BIT5 ; //Activar intrrupcions
+P5IES  &= ~(BIT4 + BIT5); //Interrupcions L->HL->H
+P5IFG = 0;    //Netejar flags
+\end{verbatim}
 
 \section{Funcions utilitzades}
 % Com i per quines funcions es fan servir.
