@@ -5,24 +5,28 @@
 \usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage[headsep=1.5cm]{geometry}
- 
 
-\rfoot{Page }
+
 
 \title{Configuració de Ports}
 \author{
     Iván Canales% Martín
-    \\ 
-    Xavier Ripoll% Echeveste 
+    \\
+    Xavier Ripoll% Echeveste
 }
 
-\date{March 2018}
+\date{9 de març de 2018}
 
 \pagestyle{fancy}
 \fancyhf{}
-\chead{Programació d'Arquitectures Encastades}
-\rhead{\thepage}
-\lhead{\theauthor}
+
+% Head
+\lhead{\small\theauthor}
+\chead{\small Programació d'Arquitectures\\Encastades}
+\rhead{\small Pràctica 2:\\Configuració de Ports}
+
+% Foot
+\cfoot{\thepage}
 
 \begin{document}
 
@@ -35,7 +39,7 @@
 	\centering
 	{\scshape\LARGE Universitat de Barcelona \par}
 	\vspace{2cm}
-	{\scshape\Large Pràctica 2:\par} 
+	{\scshape\Large Pràctica 2:\par}
 	\vspace{1cm}
 	{\huge\bfseries \thetitle \par}
 
@@ -43,21 +47,21 @@
     \large\theauthor
 	\vfill
 	\raggedleft
-    
+
     \par
-    
+
     %\hrulefill\par
     {\scshape Programació d'Arquitectures Encastades\par}
-    \texttt{}{Curs 17/18\par} %Universitat de Barcelona
-    \today
+    \texttt{}{Curs 2017-2018\par} %Universitat de Barcelona
+    \thedate
 
 % Bottom of the page
-	
+
 \end{titlepage} \pagebreak
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Objectius}
-% Què es vol fer a la pràctica. 
+% Què es vol fer a la pràctica.
 
 \section{Recursos utilitzats}
 % Quins recursos del Microcontrolador, Placa d’Experimentació i Robot es fan servir.
