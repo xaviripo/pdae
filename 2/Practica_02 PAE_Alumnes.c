@@ -144,6 +144,8 @@ void init_botons(void)
       P5DIR &= ~(BIT4 + BIT5);  //Pines P5.4 y 5.5 como entrades,
       P5SEL0 &= ~(BIT4 + BIT5); //Pines P5.4 y 5.5 como I/O digitales,
       P5SEL1 &= ~(BIT4 + BIT5);
+      P5REN  |=   BIT4 + BIT5 ; //Activar resistencia pullup
+      P5OUT  |=   BIT4 + BIT5 ; //
       P5IE |= BIT4 + BIT5;  //Interrupciones activadas en 5.4 y 5.5,
       P5IES &= ~(BIT4 + BIT5);  //las interrupciones se generaran con transicion L->H
       P5IFG = 0;    //Limpiamos todos los flags de las interrupciones del puerto 4

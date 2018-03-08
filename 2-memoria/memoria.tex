@@ -31,7 +31,7 @@
     keywordstyle=\color{bluekeywords},
     stringstyle=\color{redstrings},
     numberstyle=\color{graynumbers},
-    basicstyle=\ttfamily\footnotesize,
+    basicstyle=\footnotesize\ttfamily,
     frame=l,
     framesep=12pt,
     xleftmargin=12pt,
@@ -108,6 +108,8 @@ De la placa \textit{Boosterpack MK II} volem fer servir:
     \item Sortides: el led RGB
 \end{itemize}
 
+De la Placa d'experimentació, farem servir els vuit leds del port P7.
+
 De la placa d'interfície farem servir els 8 leds del port 8 (com sortida).
 
 \section{Configuració dels recursos}
@@ -164,9 +166,22 @@ P4IFG   = 0;    //Netejar flags
 P5DIR  &= ~(BIT4 + BIT5); //Posar com entrades,
 P5SEL0 &= ~(BIT4 + BIT5); //Posar a I/O digital,
 P5SEL1 &= ~(BIT4 + BIT5); //
+P5REN  |=   BIT4 + BIT5 ; //Activar resistencia pullup
+P5OUT  |=   BIT4 + BIT5 ; //
 P5IE   |=   BIT4 + BIT5 ; //Activar intrrupcions
 P5IES  &= ~(BIT4 + BIT5); //Interrupcions L->HL->H
 P5IFG = 0;    //Netejar flags
+\end{lstlisting}
+
+\subsection{Configuració dels leds del port P7}
+
+Cal que posem tots els leds como a salida digital (igual que els leds RGB).
+
+\begin{lstlisting}[language=C++]
+P7DIR  |= 0xFF; // Todos de salida
+P7SEL0 &= 0x00; // Todos GPIO
+P7SEL1 &= 0x00;
+P7OUT  &= 0x00;  // Todos apagados
 \end{lstlisting}
 
 \section{Funcions utilitzades}
