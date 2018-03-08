@@ -111,47 +111,48 @@ void init_botons(void)
     //***************************
 
     //Leds RGB del MK II:
-    P2DIR |= 0x50;  //Pines P2.4 (G), 2.6 (R) como salidas Led (RGB)
-    P5DIR |= 0x40;  //Pin P5.6 (B)como salida Led (RGB)
-    P2OUT &= 0xAF;  //Inicializamos Led RGB a 0 (apagados)
-    P5OUT &= ~0x40; //Inicializamos Led RGB a 0 (apagados)
+    P2DIR |= BIT4 | BIT6;  //Pines P2.4 (G), 2.6 (R) como salidas Led (RGB)
+    P5DIR |= BIT6;  //Pin P5.6 (B)como salida Led (RGB)
+    P2OUT &= ~(BIT4 | BIT6);  //Inicializamos Led RGB a 0 (apagados)
+    P5OUT &= ~BIT6; //Inicializamos Led RGB a 0 (apagados)
 
     //Boton S1 del MK II:
-    P5SEL0 &= ~0x02;   //Pin P5.1 como I/O digital,
-    P5SEL1 &= ~0x02;   //Pin P5.1 como I/O digital,
-    P5DIR &= ~0x02; //Pin P5.1 como entrada
-    P5IES &= ~0x02;   // con transicion L->H
-    P5IE |= 0x02;     //Interrupciones activadas en P5.1,
-    P5IFG = 0;    //Limpiamos todos los flags de las interrupciones del puerto 5
+    P5SEL0 &= ~BIT1;   //Pin P5.1 como I/O digital,
+    P5SEL1 &= ~BIT1;   //Pin P5.1 como I/O digital,
+    P5DIR  &= ~BIT1; //Pin P5.1 como entrada
+    P5IES  &= ~BIT1;   // con transicion L->H
+    P5IE   |=  BIT1;     //Interrupciones activadas en P5.1,
+    P5IFG   = 0;    //Limpiamos todos los flags de las interrupciones del puerto 5
     //P5REN: Ya hay una resistencia de pullup en la placa MK II
 
     //Boton S2 del MK II:
-    P3SEL0 &= ~0x20;   //Pin P3.5 como I/O digital,
-    P3SEL1 &= ~0x20;   //Pin P3.5 como I/O digital,
-    P3DIR &= ~0x20; //Pin P3.5 como entrada
-    P3IES &= ~0x20;   // con transicion L->H
-    P3IE |= 0x20;   //Interrupciones activadas en P3.5
-    P3IFG = 0;  //Limpiamos todos los flags de las interrupciones del puerto 3
+    P3SEL0 &= ~BIT5;   //Pin P3.5 como I/O digital,
+    P3SEL1 &= ~BIT5;   //Pin P3.5 como I/O digital,
+    P3DIR  &= ~BIT5; //Pin P3.5 como entrada
+    P3REN  |= BIT4 + BIT5; //Activar resistencia pullup
+    P3IES  &= ~BIT5;   // con transicion L->H
+    P3IE   |= BIT5;   //Interrupciones activadas en P3.5
+    P3IFG   = 0;  //Limpiamos todos los flags de las interrupciones del puerto 3
     //P3REN: Ya hay una resistencia de pullup en la placa MK II
 
     //Configuramos los GPIOs del joystick del MK II:
-    P4DIR &= ~(BIT1 + BIT5 + BIT7 );   //Pines P4.1, 4.5 y 4.7 como entrades,
+    P4DIR  &= ~(BIT1 + BIT5 + BIT7 ); //Pines P4.1, 4.5 y 4.7 como entrades,
     P4SEL0 &= ~(BIT1 + BIT5 + BIT7 ); //Pines P4.1, 4.5 y 4.7 como I/O digitales,
     P4SEL1 &= ~(BIT1 + BIT5 + BIT7 );
-    P4REN |= BIT1 + BIT5 + BIT7;  //con resistencia activada
-    P4OUT |= BIT1 + BIT5 + BIT7;  // de pull-up
-    P4IE |= BIT1 + BIT5 + BIT7;   //Interrupciones activadas en P4.1, 4.5 y 4.7,
-    P4IES &= ~(BIT1 + BIT5 + BIT7 ); //las interrupciones se generaran con transicion L->H
-    P4IFG = 0;    //Limpiamos todos los flags de las interrupciones del puerto 4
+    P4REN  |= BIT1 + BIT5 + BIT7;  //con resistencia activada
+    P4OUT  |= BIT1 + BIT5 + BIT7;  // de pull-up
+    P4IE   |= BIT1 + BIT5 + BIT7;  //Interrupciones activadas en P4.1, 4.5 y 4.7,
+    P4IES  &= ~(BIT1 + BIT5 + BIT7 ); //las interrupciones se generaran con transicion L->H
+    P4IFG   = 0;    //Limpiamos todos los flags de las interrupciones del puerto 4
 
-    P5DIR &= ~(BIT4 + BIT5 );  //Pines P5.4 y 5.5 como entrades,
+    P5DIR  &= ~(BIT4 + BIT5 ); //Pines P5.4 y 5.5 como entrades,
     P5SEL0 &= ~(BIT4 + BIT5 ); //Pines P5.4 y 5.5 como I/O digitales,
     P5SEL1 &= ~(BIT4 + BIT5 );
-    P5REN |= BIT4 + BIT5; //Activar resistencia pullup
-    P5OUT |= BIT4 + BIT5; //
-    P5IE |= BIT4 + BIT5;  //Interrupciones activadas en 5.4 y 5.5,
-    P5IES &= ~(BIT4 + BIT5 ); //las interrupciones se generaran con transicion L->H
-    P5IFG = 0;    //Limpiamos todos los flags de las interrupciones del puerto 4
+    P5REN  |= BIT4 + BIT5; //Activar resistencia pullup
+    P5OUT  |= BIT4 + BIT5; //
+    P5IE   |= BIT4 + BIT5;  //Interrupciones activadas en 5.4 y 5.5,
+    P5IES  &= ~(BIT4 + BIT5 ); //las interrupciones se generaran con transicion L->H
+    P5IFG   = 0;    //Limpiamos todos los flags de las interrupciones del puerto 4
     // - Ya hay una resistencia de pullup en la placa MK II
 }
 
@@ -183,19 +184,17 @@ void delay_t(uint32_t temps)
  ****************************************************************************/
 void config_P7_LEDS(void)
 {
-
     P7DIR |= 0xFF; // Todos de salida
     P7SEL0 &= 0x00; // Todos GPIO
     P7SEL1 &= 0x00;
     P7OUT &= 0x00;  // Todos apagados
-
 }
 
 void main(void)
 {
     uint32_t retraso_leds;
     uint32_t time_elapsed;
-    bool incrementar;
+    uint8_t  incrementar;
     uint8_t temp;
     uint8_t led_actual;
 
@@ -372,12 +371,13 @@ void PORT3_IRQHandler(void)
 
     switch (flag)
     {
+
     case 0x0C: // P3.5
         estado = 2;
         break;
     }
 
-    P3IE |= 0x20;   //interrupciones S2 en port 3 reactivadas
+    P3IE |= BIT5;   //interrupciones S2 en port 3 reactivadas
 }
 
 //ISR para las interrupciones del puerto 4:
