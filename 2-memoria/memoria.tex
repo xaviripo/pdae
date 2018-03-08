@@ -96,8 +96,9 @@
 
 \end{titlepage} \pagebreak
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introducció}
 
-\section{Objectius}
+\subsection{Objectius}
 % Què es vol fer a la pràctica.
 
 En la pràctica es pretén introduir els GPIOs (\textit{General Purpose
@@ -130,7 +131,7 @@ anomenats \textit{handlers} que són cridats quan hi ha una interrupció (en el
 nostre cas, quan es prem un botó o el \textit{joystick}), i és important que
 qualsevol tasca que realitzem en el bucle principal no sigui bloquejant.
 
-\section{Recursos utilitzats}
+\subsection{Recursos utilitzats}
 % Quins recursos del Microcontrolador, Placa d’Experimentació i Robot es fan servir.
 De la placa \textit{Boosterpack MK II} volem fer servir:
 
@@ -143,9 +144,9 @@ De la Placa d'experimentació, farem servir els vuit LEDs del port P7.
 
 De la placa d'interfície farem servir els 8 LEDs del port 8 (com sortida).
 
-\section{Configuració dels recursos}
+\subsection{Configuració dels recursos}
 % Com s’han configurat els diferents recursos.
-\subsection{Configuració dels LEDs}
+\subsubsection{Configuració dels LEDs}
 Es posen els LEDs RGB (pins P2.6, P2.4 i P5.6 respectivament) com a sortides ($DIR = 1$) digitals ($SEL0 = SEL1 = 0$) i es posen a 0 (apagats).
 
 \begin{lstlisting}[language=C++]
@@ -155,7 +156,7 @@ P2OUT &= ~0x50; //Inicializamos Led RGB a 0 (apagados)
 P5OUT &= ~0x40; //Inicializamos Led RGB a 0 (apagados)
 \end{lstlisting}
 
-\subsection{Configuració dels botons}
+\subsubsection{Configuració dels botons}
 
 Es posen els botons com entrades ($DIR = 0$) digitals ($SEL0 = SEL1 = 0$). Volem que la transició sigui en el flanc de pujada ($IES = 0$). finalment activem les interrupcions i netegem els flags.
 
@@ -179,7 +180,7 @@ P3IE   |=  0x20; //Interrupciones activadas en P3.5
 P3IFG   =     0; //Limpiamos todos los flags de las interrupciones del puerto 3
 \end{lstlisting}
 
-\subsection{Configuració del \textit{joystick}}
+\subsubsection{Configuració del joystick}
 
 De la mateixa manera que els botons, es posen els bits del \textit{joystick} com entrades ($DIR = 0$) digitals ($SEL0 = SEL1 = 0$) amb transició per flanc de pujada.
 \begin{lstlisting}[language=C++]
@@ -204,7 +205,7 @@ P5IES  &= ~(BIT4 + BIT5); //Interrupcions L->HL->H
 P5IFG = 0;    //Netejar flags
 \end{lstlisting}
 
-\subsection{Configuració dels LEDs del port P7}
+\subsubsection{Configuració dels LEDs del port P7}
 
 Cal que posem tots els LEDs como a salida digital (igual que els LEDs RGB).
 
@@ -215,13 +216,18 @@ P7SEL1 &= 0x00;
 P7OUT  &= 0x00;  // Todos apagados
 \end{lstlisting}
 
-\section{Funcions utilitzades}
+%\subsection{Funcions utilitzades}
 % Com i per quines funcions es fan servir.
 
-\section{Problemes}
+
+\subsection{Problemes}
 % Problemes que han sorgit (que no siguin de compilació) i com s’han solucionat.
+Durant la implementació de la practica vam descartar l'ús de \texttt{delay\_t} y en la gestió del moviment dels leds del port P7, doncs és una funció bloquejant, i volem que encara que els leds es moguin es pugin modificar els estats.
 
-\section{Conclusions}
+En quant a hardware, vam trobar que un dels leds del port P7 no funcionaba, fet que va dificultar el testeig del programa.
 
+\subsection{Conclusions}
+
+\section{Comentari del codi}
 
 \end{document}
