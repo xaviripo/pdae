@@ -297,6 +297,9 @@ void main(void)
         // contar si ha pasado suficiente tiempo
         if (retraso_leds <= time_elapsed)
         {
+
+            time_elapsed = 0;
+
             // mover segun sentido
             if (izquierdaderecha)
             {
