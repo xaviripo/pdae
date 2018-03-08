@@ -141,7 +141,7 @@ De la placa \textit{Boosterpack MK II} volem fer servir:
     \item Sortides: el LED RGB
 \end{itemize}
 
-De la Placa d'experimentació, farem servir els vuit LEDs del port P7.
+De la placa d'experimentació, farem servir els vuit LEDs del port P7.
 
 De la placa d'interfície farem servir els 8 LEDs del port 8 (com sortida).
 
@@ -159,7 +159,7 @@ P5OUT &= ~0x40; //Inicializamos Led RGB a 0 (apagados)
 
 \subsubsection{Configuració dels botons}
 
-Es posen els botons com entrades ($DIR = 0$) digitals ($SEL0 = SEL1 = 0$). Volem que la transició sigui en el flanc de pujada ($IES = 0$). finalment activem les interrupcions i netegem els flags.
+Es posen els botons com entrades ($DIR = 0$) digitals ($SEL0 = SEL1 = 0$). Volem que la transició sigui en el flanc de pujada ($IES = 0$). Finalment activem les interrupcions i netegem els flags.
 
 \begin{lstlisting}[language=C]
 //Boton S1
