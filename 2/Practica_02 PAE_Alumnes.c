@@ -113,46 +113,46 @@ void init_botons(void)
     //Leds RGB del MK II:
     P2DIR |= BIT4 | BIT6;  //Pines P2.4 (G), 2.6 (R) como salidas Led (RGB)
     P5DIR |= BIT6;  //Pin P5.6 (B)como salida Led (RGB)
-    P2OUT &= ~(BIT4 | BIT6);  //Inicializamos Led RGB a 0 (apagados)
+    P2OUT &= ~(BIT4 | BIT6 );  //Inicializamos Led RGB a 0 (apagados)
     P5OUT &= ~BIT6; //Inicializamos Led RGB a 0 (apagados)
 
     //Boton S1 del MK II:
     P5SEL0 &= ~BIT1;   //Pin P5.1 como I/O digital,
     P5SEL1 &= ~BIT1;   //Pin P5.1 como I/O digital,
-    P5DIR  &= ~BIT1; //Pin P5.1 como entrada
-    P5IES  &= ~BIT1;   // con transicion L->H
-    P5IE   |=  BIT1;     //Interrupciones activadas en P5.1,
-    P5IFG   = 0;    //Limpiamos todos los flags de las interrupciones del puerto 5
+    P5DIR &= ~BIT1; //Pin P5.1 como entrada
+    P5IES &= ~BIT1;   // con transicion L->H
+    P5IE |= BIT1;     //Interrupciones activadas en P5.1,
+    P5IFG = 0;    //Limpiamos todos los flags de las interrupciones del puerto 5
     //P5REN: Ya hay una resistencia de pullup en la placa MK II
 
     //Boton S2 del MK II:
     P3SEL0 &= ~BIT5;   //Pin P3.5 como I/O digital,
     P3SEL1 &= ~BIT5;   //Pin P3.5 como I/O digital,
-    P3DIR  &= ~BIT5; //Pin P3.5 como entrada
-    P3REN  |= BIT4 + BIT5; //Activar resistencia pullup
-    P3IES  &= ~BIT5;   // con transicion L->H
-    P3IE   |= BIT5;   //Interrupciones activadas en P3.5
-    P3IFG   = 0;  //Limpiamos todos los flags de las interrupciones del puerto 3
+    P3DIR &= ~BIT5; //Pin P3.5 como entrada
+    P3REN |= BIT4 + BIT5; //Activar resistencia pullup
+    P3IES &= ~BIT5;   // con transicion L->H
+    P3IE |= BIT5;   //Interrupciones activadas en P3.5
+    P3IFG = 0;  //Limpiamos todos los flags de las interrupciones del puerto 3
     //P3REN: Ya hay una resistencia de pullup en la placa MK II
 
     //Configuramos los GPIOs del joystick del MK II:
-    P4DIR  &= ~(BIT1 + BIT5 + BIT7 ); //Pines P4.1, 4.5 y 4.7 como entrades,
+    P4DIR &= ~(BIT1 + BIT5 + BIT7 ); //Pines P4.1, 4.5 y 4.7 como entrades,
     P4SEL0 &= ~(BIT1 + BIT5 + BIT7 ); //Pines P4.1, 4.5 y 4.7 como I/O digitales,
     P4SEL1 &= ~(BIT1 + BIT5 + BIT7 );
-    P4REN  |= BIT1 + BIT5 + BIT7;  //con resistencia activada
-    P4OUT  |= BIT1 + BIT5 + BIT7;  // de pull-up
-    P4IE   |= BIT1 + BIT5 + BIT7;  //Interrupciones activadas en P4.1, 4.5 y 4.7,
-    P4IES  &= ~(BIT1 + BIT5 + BIT7 ); //las interrupciones se generaran con transicion L->H
-    P4IFG   = 0;    //Limpiamos todos los flags de las interrupciones del puerto 4
+    P4REN |= BIT1 + BIT5 + BIT7;  //con resistencia activada
+    P4OUT |= BIT1 + BIT5 + BIT7;  // de pull-up
+    P4IE |= BIT1 + BIT5 + BIT7;  //Interrupciones activadas en P4.1, 4.5 y 4.7,
+    P4IES &= ~(BIT1 + BIT5 + BIT7 ); //las interrupciones se generaran con transicion L->H
+    P4IFG = 0;    //Limpiamos todos los flags de las interrupciones del puerto 4
 
-    P5DIR  &= ~(BIT4 + BIT5 ); //Pines P5.4 y 5.5 como entrades,
+    P5DIR &= ~(BIT4 + BIT5 ); //Pines P5.4 y 5.5 como entrades,
     P5SEL0 &= ~(BIT4 + BIT5 ); //Pines P5.4 y 5.5 como I/O digitales,
     P5SEL1 &= ~(BIT4 + BIT5 );
-    P5REN  |= BIT4 + BIT5; //Activar resistencia pullup
-    P5OUT  |= BIT4 + BIT5; //
-    P5IE   |= BIT4 + BIT5;  //Interrupciones activadas en 5.4 y 5.5,
-    P5IES  &= ~(BIT4 + BIT5 ); //las interrupciones se generaran con transicion L->H
-    P5IFG   = 0;    //Limpiamos todos los flags de las interrupciones del puerto 4
+    P5REN |= BIT4 + BIT5; //Activar resistencia pullup
+    P5OUT |= BIT4 + BIT5; //
+    P5IE |= BIT4 + BIT5;  //Interrupciones activadas en 5.4 y 5.5,
+    P5IES &= ~(BIT4 + BIT5 ); //las interrupciones se generaran con transicion L->H
+    P5IFG = 0;    //Limpiamos todos los flags de las interrupciones del puerto 4
     // - Ya hay una resistencia de pullup en la placa MK II
 }
 
@@ -194,7 +194,7 @@ void main(void)
 {
     uint32_t retraso_leds;
     uint32_t time_elapsed;
-    uint8_t  izquierdaderecha;
+    uint8_t izquierdaderecha;
     uint8_t temp;
     uint8_t led_actual;
 
@@ -219,7 +219,7 @@ void main(void)
     do
     {
 
-        if (estado_anterior != estado)// Dependiendo del valor del estado se encender� un LED u otro.
+        if (estado_anterior != estado) // Dependiendo del valor del estado se encender� un LED u otro.
         {
             sprintf(cadena, " estado %d", estado); // Guardamos en cadena la siguiente frase: estado "valor del estado"
             escribir(cadena, linea);          // Escribimos la cadena al LCD
@@ -251,12 +251,6 @@ void main(void)
                 P2OUT |= BIT4 | BIT6;
                 P5OUT |= BIT6;
 
-                /*
-                 for(led_actual = 0x80; led_actual != 0x00; led_actual >>= 0x01) {
-                 P7OUT = led_actual;
-                 delay_t(retraso_leds);
-                 }
-                 */
                 /**/
                 izquierdaderecha = 0;
                 /**/
@@ -267,12 +261,6 @@ void main(void)
             case 4:
                 P2OUT |= BIT4 | BIT6;
                 P5OUT &= ~BIT6;
-
-                /*
-                 for(led_actual = 0x01; led_actual != 0x00; led_actual <<= 0x01) {
-                 P7OUT = led_actual;
-                 delay_t(retraso_leds);
-                 }*/
 
                 /**/
                 izquierdaderecha = 1;
@@ -326,14 +314,6 @@ void main(void)
             time_elapsed += 1;
         }
 
-        /* TODO *
-         P2OUT ^= 0x40;		// Conmutamos el estado del LED R (bit 6)
-         delay_t(retraso);	// periodo del parpadeo
-         P2OUT ^= 0x10;		// Conmutamos el estado del LED G (bit 4)
-         delay_t(retraso);	// periodo del parpadeo
-         P5OUT ^= 0x40;	    // Conmutamos el estado del LED B (bit 6)
-         delay_t(retraso);  // periodo del parpadeo
-         */
     }
     while (1); //Condicion para que el bucle sea infinito
 }
