@@ -1,0 +1,22 @@
+@startuml
+
+title PORT5_IRQHandler
+
+
+start
+
+:Desactivar interrupcions;
+
+if (flag) then (0x0A)
+  :estado = 5;
+else if () then (0x0C)
+  :estado = 6;
+else if () then (0x04)
+  :estado = 1;
+endif
+
+:Activar interrupcions;
+
+stop
+
+@enduml

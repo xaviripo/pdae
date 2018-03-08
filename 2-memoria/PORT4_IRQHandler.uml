@@ -1,0 +1,22 @@
+@startuml
+
+title PORT4_IRQHandler
+
+
+start
+
+:Desactivar interrupcions;
+
+if (flag) then (0x0C)
+  :estado = 4;
+else if () then (0x10)
+  :estado = 3;
+else if () then (0x04)
+  :estado = 7;
+endif
+
+:Activar interrupcions;
+
+stop
+
+@enduml

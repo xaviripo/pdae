@@ -1,0 +1,19 @@
+@startuml
+
+title PORT3_IRQHandler
+
+
+start
+
+:Desactivar interrupcions;
+
+if (flag) then (0x0C)
+  :estado = 2;
+else (Altres valors)
+endif
+
+:Activar interrupcions;
+
+stop
+
+@enduml
