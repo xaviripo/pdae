@@ -124,12 +124,18 @@ A més a més, els controls horitzontals del \textit{joystick} marquen la direcc
 en què circula un senyal a través dels LEDs de la placa inferior, i els controls
 verticals, la velocitat a la que es mou el senyal.
 
+Per a que aquests dos comportaments es realitzin correctament i en temps real,
+cal que considerem la \textit{sincronia} del codi. Per això emprem uns mètodes
+anomenats \textit{handlers} que són cridats quan hi ha una interrupció (en el
+nostre cas, quan es prem un botó o el \textit{joystick}), i és important que
+qualsevol tasca que realitzem en el bucle principal no sigui bloquejant.
+
 \section{Recursos utilitzats}
 % Quins recursos del Microcontrolador, Placa d’Experimentació i Robot es fan servir.
 De la placa \textit{Boosterpack MK II} volem fer servir:
 
 \begin{itemize}
-    \item Entrades: el joystick, els polsadors S1 i S2
+    \item Entrades: el \textit{joystick}, els polsadors S1 i S2
     \item Sortides: el LED RGB
 \end{itemize}
 
@@ -173,9 +179,9 @@ P3IE   |=  0x20; //Interrupciones activadas en P3.5
 P3IFG   =     0; //Limpiamos todos los flags de las interrupciones del puerto 3
 \end{lstlisting}
 
-\subsection{Configuració del joystick}
+\subsection{Configuració del \textit{joystick}}
 
-De la mateixa manera que els botons, es posen els bits del joystick com entrades ($DIR = 0$) digitals ($SEL0 = SEL1 = 0$) amb transició per flanc de pujada.
+De la mateixa manera que els botons, es posen els bits del \textit{joystick} com entrades ($DIR = 0$) digitals ($SEL0 = SEL1 = 0$) amb transició per flanc de pujada.
 \begin{lstlisting}[language=C++]
 //PIN 4
 P4DIR  &= ~(BIT1 + BIT5 + BIT7); //Posar com entrades,
