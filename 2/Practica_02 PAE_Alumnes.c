@@ -18,7 +18,11 @@ uint8_t linea = 1;
 uint8_t estado=0;
 uint8_t estado_anterior = 8;
 uint32_t retraso = 500000;
-uint32_t retraso_leds = 500000;
+
+// control leds P7
+uint32_t retraso_leds;
+uint32_t time_elapsed;
+bool incrementar;
 const uint32_t INC_RETRASO = 200000;
 
 /**************************************************************************
@@ -184,6 +188,8 @@ void config_P7_LEDS (void)
 
 }
 
+
+
 void main(void)
 {
 
@@ -200,6 +206,11 @@ void main(void)
 
     halLcdPrintLine(saludo,linea, INVERT_TEXT); //escribimos saludo en la primera linea
   	linea++; 					//Aumentamos el valor de linea y con ello pasamos a la linea siguiente
+
+    // init variables
+    time_elapsed = 0;
+    incrementar  = 1;
+    retraso_leds = 500000;
 
   	//Bucle principal (infinito):
   	do
@@ -236,10 +247,16 @@ void main(void)
             P2OUT |= BIT4 | BIT6;
             P5OUT |= BIT6;
 
+            /*
             for(led_actual = 0x80; led_actual != 0x00; led_actual >>= 0x01) {
                 P7OUT = led_actual;
                 delay_t(retraso_leds);
             }
+            */
+            /**/
+            incrementar = 0;
+            /**/
+
             P7OUT = 0x00;
 
             break;
@@ -247,12 +264,17 @@ void main(void)
             P2OUT |= BIT4 | BIT6;
             P5OUT &= ~BIT6;
 
+            /*
             for(led_actual = 0x01; led_actual != 0x00; led_actual <<= 0x01) {
                 P7OUT = led_actual;
                 delay_t(retraso_leds);
-            }
-            P7OUT = 0x00;
+            }*/
 
+            /**/
+            incrementar = 1;
+            /**/
+
+            P7OUT = 0x00;
             break;
         case 5:
             P2OUT |= BIT6;
@@ -273,16 +295,29 @@ void main(void)
             P5OUT ^= BIT6;
             break;
         }
-
 	}
 
+    /* Codigo control de los leds P7 */
+    // contar si ha pasado suficiente tiempo
+    if (retraso_leds <= time_elapsed) {
+      // mover segun sentido
+      if (incrementar) {
+        led_actual <<= 0x01;
+      } else {
+        led_actual >>= 0x01;
+      }
+    } else {
+      time_elapsed += 1;
+    }
+
+    /* TODO *
   	 P2OUT ^= 0x40;		// Conmutamos el estado del LED R (bit 6)
   	 delay_t(retraso);	// periodo del parpadeo
   	 P2OUT ^= 0x10;		// Conmutamos el estado del LED G (bit 4)
   	 delay_t(retraso);	// periodo del parpadeo
   	 P5OUT ^= 0x40;	    // Conmutamos el estado del LED B (bit 6)
   	 delay_t(retraso);  // periodo del parpadeo
-
+    */
 	}while(1); //Condicion para que el bucle sea infinito
 }
 
