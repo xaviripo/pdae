@@ -194,7 +194,7 @@ void main(void)
 {
     uint32_t retraso_leds;
     uint32_t time_elapsed;
-    uint8_t  incrementar;
+    uint8_t  izquierdaderecha;
     uint8_t temp;
     uint8_t led_actual;
 
@@ -212,7 +212,7 @@ void main(void)
 
     // init variables
     time_elapsed = 0;
-    incrementar = 1;
+    izquierdaderecha = 1;
     retraso_leds = 500000;
 
     //Bucle principal (infinito):
@@ -258,7 +258,7 @@ void main(void)
                  }
                  */
                 /**/
-                incrementar = 0;
+                izquierdaderecha = 0;
                 /**/
 
                 P7OUT = 0x00;
@@ -275,7 +275,7 @@ void main(void)
                  }*/
 
                 /**/
-                incrementar = 1;
+                izquierdaderecha = 1;
                 /**/
 
                 P7OUT = 0x00;
@@ -310,7 +310,7 @@ void main(void)
         if (retraso_leds <= time_elapsed)
         {
             // mover segun sentido
-            if (incrementar)
+            if (izquierdaderecha)
             {
                 temp = led_actual << 0x01;
                 led_actual = temp ? temp : 0x01;
