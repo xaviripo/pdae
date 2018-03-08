@@ -240,53 +240,63 @@ void main(void)
             switch (estado)
             {
             case 1:
+                // leds RGB encendidos
                 P2OUT |= BIT4 | BIT6;
                 P5OUT |= BIT6;
                 break;
             case 2:
+                // leds RGB apagados
                 P2OUT &= ~(BIT4 | BIT6 );
                 P5OUT &= ~BIT6;
                 break;
             case 3:
+                // leds RGB encendidos
                 P2OUT |= BIT4 | BIT6;
                 P5OUT |= BIT6;
-
-                /**/
                 izquierdaderecha = 0;
-                /**/
-
                 P7OUT = 0x00;
 
                 break;
             case 4:
+                // leds RG encendidos y B apagado
                 P2OUT |= BIT4 | BIT6;
                 P5OUT &= ~BIT6;
 
-                /**/
+                // direcion ->
                 izquierdaderecha = 1;
-                /**/
-
                 P7OUT = 0x00;
                 break;
             case 5:
+                // leds RB encendidos y G apagado
                 P2OUT |= BIT6;
                 P2OUT &= ~BIT4;
                 P5OUT |= BIT6;
 
+                /**
+                 * nota: si el retraso es demasiado grande
+                 * (overflow), se pone al valor maximo.
+                 **/
                 retraso_leds =
                         retraso_leds + INC_RETRASO < retraso_leds ?
+                                // si el retraso
                                 INT32_MAX : retraso_leds + INC_RETRASO;
                 break;
             case 6:
+                // leds GB encendidos y R apagado
                 P2OUT &= ~BIT6;
                 P2OUT |= BIT4;
                 P5OUT |= BIT6;
 
+                /**
+                 * nota: si el retraso es demasiado pequeño
+                 * (underflow), se pone a 1.
+                 **/
                 retraso_leds =
                         retraso_leds - INC_RETRASO > retraso_leds ?
                                 1 : retraso_leds - INC_RETRASO;
                 break;
             case 7:
+                // inversion de los leds
                 P2OUT ^= BIT4 | BIT6;
                 P5OUT ^= BIT6;
                 break;
@@ -297,17 +307,24 @@ void main(void)
         // contar si ha pasado suficiente tiempo
         if (retraso_leds <= time_elapsed)
         {
-
-            time_elapsed = 0;
-
+            time_elapsed = 0; // se resetea el contador
             // mover segun sentido
             if (izquierdaderecha)
-            {
+            {   // sentido ->
+                /**
+                 * Se prueba el siguiente. Si se sale, se
+                 * vuelve a empezar
+                 **/
                 temp = led_actual << 0x01;
                 led_actual = temp ? temp : 0x01;
             }
             else
             {
+                // sentido <-
+                /**
+                 * Se prueba el siguiente. Si se sale, se
+                 * vuelve a empezar
+                 **/
                 temp = led_actual >> 0x01;
                 led_actual = temp ? temp : 0x80;
             }
