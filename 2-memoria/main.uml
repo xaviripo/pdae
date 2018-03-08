@@ -9,7 +9,7 @@ start
 
 while (Bucle infinit)
 
-if (estado_anterior != estado)
+if (estado_anterior) then ( != estado)
   if (estado) then (1)
     :R = 1
     G = 1
@@ -47,6 +47,7 @@ if (estado_anterior != estado)
     G = ~G
     B = ~B;
   endif
+else ( == estado)
 endif
 
 if (Ha passat el temps de retard?) then (Sí)
