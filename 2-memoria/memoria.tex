@@ -5,6 +5,7 @@
 \usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage[headsep=1.5cm]{geometry}
+\usepackage{float} % Para que los floats se estén quietecitos
 
 %%% LISTINGS %%%
 \usepackage{listings}
@@ -99,23 +100,47 @@
 \section{Objectius}
 % Què es vol fer a la pràctica.
 
+En la pràctica es pretén introduir els GPIOs (\textit{General Purpose
+Input/Output} o entrades i sortides de propòsit general). Per fer-ho,
+programarem algunes entrades del robot (el \textit{joystick} i dos botons) per
+a que modifiquin algunes sortides (la pantalla de la placa superior i uns LEDs),
+segons la següent taula:
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{|l||l|l|l||l|} \hline
+    Estat & LED B    & LED G    & LED R    & Botó   \\ \hline
+    1     & 1        & 1        & 1        & S1     \\ \hline
+    2     & 0        & 0        & 0        & S2     \\ \hline
+    3     & 1        & 1        & 1        & Left   \\ \hline
+    4     & 0        & 1        & 1        & Right  \\ \hline
+    5     & 1        & 0        & 1        & Up     \\ \hline
+    6     & 1        & 1        & 0        & Down   \\ \hline
+    7     & Invertir & Invertir & Invertir & Center \\ \hline
+  \end{tabular}
+\end{table}
+
+A més a més, els controls horitzontals del \textit{joystick} marquen la direcció
+en què circula un senyal a través dels LEDs de la placa inferior, i els controls
+verticals, la velocitat a la que es mou el senyal.
+
 \section{Recursos utilitzats}
 % Quins recursos del Microcontrolador, Placa d’Experimentació i Robot es fan servir.
 De la placa \textit{Boosterpack MK II} volem fer servir:
 
 \begin{itemize}
     \item Entrades: el joystick, els polsadors S1 i S2
-    \item Sortides: el led RGB
+    \item Sortides: el LED RGB
 \end{itemize}
 
-De la Placa d'experimentació, farem servir els vuit leds del port P7.
+De la Placa d'experimentació, farem servir els vuit LEDs del port P7.
 
-De la placa d'interfície farem servir els 8 leds del port 8 (com sortida).
+De la placa d'interfície farem servir els 8 LEDs del port 8 (com sortida).
 
 \section{Configuració dels recursos}
 % Com s’han configurat els diferents recursos.
-\subsection{Configuració dels leds}
-Es posen els leds RGB (pins P2.6, P2.4 i P5.6 respectivament) com a sortides ($DIR = 1$) digitals ($SEL0 = SEL1 = 0$) i es posen a 0 (apagats).
+\subsection{Configuració dels LEDs}
+Es posen els LEDs RGB (pins P2.6, P2.4 i P5.6 respectivament) com a sortides ($DIR = 1$) digitals ($SEL0 = SEL1 = 0$) i es posen a 0 (apagats).
 
 \begin{lstlisting}[language=C++]
 P2DIR |=  0x50; //Pines P2.4 (G), 2.6 (R) como salidas Led (RGB)
@@ -173,9 +198,9 @@ P5IES  &= ~(BIT4 + BIT5); //Interrupcions L->HL->H
 P5IFG = 0;    //Netejar flags
 \end{lstlisting}
 
-\subsection{Configuració dels leds del port P7}
+\subsection{Configuració dels LEDs del port P7}
 
-Cal que posem tots els leds como a salida digital (igual que els leds RGB).
+Cal que posem tots els LEDs como a salida digital (igual que els LEDs RGB).
 
 \begin{lstlisting}[language=C++]
 P7DIR  |= 0xFF; // Todos de salida
