@@ -20,9 +20,7 @@ uint8_t estado_anterior = 8;
 uint32_t retraso = 500000;
 
 // control leds P7
-uint32_t retraso_leds;
-uint32_t time_elapsed;
-bool incrementar;
+
 const uint32_t INC_RETRASO = 200000;
 
 /**************************************************************************
@@ -192,7 +190,10 @@ void config_P7_LEDS (void)
 
 void main(void)
 {
-
+    uint32_t retraso_leds;
+    uint32_t time_elapsed;
+    bool incrementar;
+    uint8_t temp;
     uint8_t led_actual;
 
   	WDTCTL = WDTPW+WDTHOLD;       	// Paramos el watchdog timer
@@ -302,9 +303,11 @@ void main(void)
     if (retraso_leds <= time_elapsed) {
       // mover segun sentido
       if (incrementar) {
-        led_actual <<= 0x01;
+        temp = led_actual << 0x01;
+        led_actual = temp? temp: 0x01;
       } else {
-        led_actual >>= 0x01;
+        temp = led_actual >> 0x01;
+        led_actual = temp? temp: 0x80
       }
     } else {
       time_elapsed += 1;
