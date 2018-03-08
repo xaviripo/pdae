@@ -111,9 +111,9 @@ void init_botons(void)
     //***************************
 
     //Leds RGB del MK II:
-    P2DIR |= BIT4 | BIT6;  //Pines P2.4 (G), 2.6 (R) como salidas Led (RGB)
+    P2DIR |= BIT4 | BIT6;  //Pines P2.4 (G), 2.6 (R) como salidas Led (RGB)
     P5DIR |= BIT6;  //Pin P5.6 (B)como salida Led (RGB)
-    P2OUT &= ~(BIT4 | BIT6);  //Inicializamos Led RGB a 0 (apagados)
+    P2OUT &= ~(BIT4 | BIT6);  //Inicializamos Led RGB a 0 (apagados)
     P5OUT &= ~BIT6; //Inicializamos Led RGB a 0 (apagados)
 
     //Boton S1 del MK II:
@@ -318,7 +318,7 @@ void main(void)
             else
             {
                 temp = led_actual >> 0x01;
-                led_actual = temp ? temp : 0x80
+                led_actual = temp ? temp : 0x80;
             }
         }
         else
