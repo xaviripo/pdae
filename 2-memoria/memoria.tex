@@ -229,6 +229,10 @@ En quant a hardware, vam trobar que un dels leds del port P7 no funcionaba, fet 
 
 \subsection{Conclusions}
 
+Gràcies a aquesta pràctica hem après les tècniques per a treballar amb les entrades i sortides del MSP432P401: configurar els pins de la placa, llegir entrades de dades mitjançant interrupcions i escriure resultats a les sortides.
+
+A més hem vist les repercusions que té el fet de treballar amb hardware sobre el codi que s'escriu (per exemple, apreciem rebots quan fem servir els botons); així com la manera de debugar el codi fent ús intensiu del debugador.
+
 \section{Comentari del codi}
 
 
@@ -329,7 +333,7 @@ void PORT5_IRQHandler(void)
 
 \subsection{if i for}
 
-En la funció \texttt{main} farem el handle de les subrutines. Notem que fem que els bits del port P7 no aturin el bucle quan es delspacen.
+En la funció \texttt{main} farem el handle de les subrutines. Notem que fem que els bits del port P7 no aturin el bucle quan es delspacen. Notem que com no volem que es produeixi bloqueig, no fem servir més bucles (for) que el while principal del main.
 
 \begin{lstlisting}[language=C]
 void main(void)
