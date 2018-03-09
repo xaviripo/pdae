@@ -214,6 +214,7 @@ void main(void)
     time_elapsed = 0;
     izquierdaderecha = 1;
     retraso_leds = 500000;
+    led_actual = 0x00;
 
     //Bucle principal (infinito):
     do
@@ -333,6 +334,8 @@ void main(void)
         {
             time_elapsed += 1;
         }
+
+        P7OUT = led_actual;
 
     }
     while (1); //Condicion para que el bucle sea infinito
