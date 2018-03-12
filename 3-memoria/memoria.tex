@@ -1,0 +1,77 @@
+\documentclass[12pt,a4paper]{article}
+% Necesario aquí para que lea bien el shorttitle
+\usepackage[utf8]{inputenc}
+% Título en la cabecera
+\newcommand{\shorttitle}{Pràctica 3:\\Timers i Interrupcions}
+
+\usepackage{../pdae}
+
+\title{Creació de Funcions de Retard i un Rellotge en Temps Real mitjançant
+l’ús de Timers i Interrupcions}
+
+\author{
+    Iván Canales\\
+    Xavier Ripoll
+}
+
+\date{23 de març de 2018} % TODO poner la fecha de entrega
+
+
+\begin{document}
+\maketitle
+\pagebreak
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introducció}
+
+\subsection{Objectius}
+% Què es vol fer a la pràctica.
+
+La pràctica té dues parts principals.
+
+Abans de fer cap de les dues, ens cal configurar els \textit{timers} del
+microcontrolador per tal de poder utilitzar-los.
+
+En el primer exercici, refactoritzem la part del
+codi de la pràctica 2 en què es permetia modificar la freqüència i direcció
+dels LEDs de la placa inferior. La idea és emprar els \textit{timers} del
+microcontrolador per mesurar el temps amb més precisió i controlar millor
+els casos excepcionals (e.g. quan al pujar o baixar la freqüència hi ha un
+\textit{overflow} o \textit{underflow}).
+
+La segona part consisteix en dissenyar tant la interfície (per la pantalla LCD)
+com la implementació (novament amb \textit{clocks} i \textit{timers}) d'un
+rellotge que porti l'hora i una alarma, ambdues programables.
+
+
+\subsection{Recursos utilitzats}
+% Quins recursos del Microcontrolador, Placa d’Experimentació i Robot es fan servir.
+Utilitzarem el \texttt{ACLK} com a \textit{clock} base per al \textit{timer}
+que controla els LEDs i el rellotge \texttt{SMCLK} per controlar l'hora i
+l'alarma.
+% TODO ^ poner los clocks que usamos para cada ejercicio
+
+De la placa \textit{Boosterpack MK II} volem fer servir tant el
+\textit{joystick} com els polsadors S1 i S2 com a entrades, a més a més de la
+pantalla LCD com a sortida (en la que es mostrarà la freqüència dels LEDs,
+l'hora i l'alarma).
+
+De la placa d'experimentació, novament farem servir els vuit LEDs del port P7
+per mostrar la llum que es va ``desplaçant''.
+
+
+\subsection{Configuració dels recursos}
+% Com s’han configurat els diferents recursos.
+
+\subsection{Funcions utilitzades}
+% Com i per quines funcions es fan servir.
+
+\subsection{Problemes}
+% Problemes que han sorgit (que no siguin de compilació) i com s’han solucionat.
+
+\subsection{Conclusions}
+
+\section{Comentari del codi}
+
+\section{Diagrames de flux}
+
+\end{document}
