@@ -224,6 +224,32 @@ void init_timer(void) {
      * */
 }
 
+/* Codigo control de los leds P7 */
+void update_leds(uint8_t izquierdaderecha, uint8_t led_actual) {
+    
+    // mover segun sentido
+    if (izquierdaderecha)
+    {   // sentido ->
+        /**
+         * Se prueba el siguiente. Si se sale, se
+         * vuelve a empezar
+         **/
+        temp = led_actual << 0x01;
+        led_actual = temp ? temp : 0x01;
+    }
+    else
+    {
+        // sentido <-
+        /**
+         * Se prueba el siguiente. Si se sale, se
+         * vuelve a empezar
+         **/
+        temp = led_actual >> 0x01;
+        led_actual = temp ? temp : 0x80;
+    }
+    P7OUT = led_actual;
+}
+
 void main(void)
 {
     uint32_t retraso_leds;
@@ -254,7 +280,6 @@ void main(void)
     //Bucle principal (infinito):
     do
     {
-
         if (estado_anterior != estado) // Dependiendo del valor del estado se encender� un LED u otro.
         {
             sprintf(cadena, " estado %d", estado); // Guardamos en cadena la siguiente frase: estado "valor del estado"
@@ -346,39 +371,18 @@ void main(void)
                 break;
             }
         }
-
-        /* Codigo control de los leds P7 */
+        
         // contar si ha pasado suficiente tiempo
         if (retraso_leds <= ms_elapsed)
         {
             ms_elapsed = 0; // se resetea el contador
-            // mover segun sentido
-            if (izquierdaderecha)
-            {   // sentido ->
-                /**
-                 * Se prueba el siguiente. Si se sale, se
-                 * vuelve a empezar
-                 **/
-                temp = led_actual << 0x01;
-                led_actual = temp ? temp : 0x01;
-            }
-            else
-            {
-                // sentido <-
-                /**
-                 * Se prueba el siguiente. Si se sale, se
-                 * vuelve a empezar
-                 **/
-                temp = led_actual >> 0x01;
-                led_actual = temp ? temp : 0x80;
-            }
+            update_leds(izquierdaderecha, led_actual)
         }
-
-        P7OUT = led_actual;
 
     }
     while (1); //Condicion para que el bucle sea infinito
 }
+
 
 /**************************************************************************
  * RUTINAS DE GESTION DE LOS BOTONES:
