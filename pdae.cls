@@ -26,6 +26,7 @@
 \RequirePackage{fancyhdr}
 \RequirePackage[headsep=1.5cm]{geometry}
 \RequirePackage{float} % Para que los floats se estén quietecitos
+\RequirePackage[utf8]{inputenc}
 
 % short title
 \newcommand{\shorttitle}[1]{\def\theshorttitle{#1}}
