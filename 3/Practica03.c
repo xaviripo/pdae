@@ -605,7 +605,7 @@ void main(void)
             escribir(cadena, LINEA_HORA);
 
             // Riiiing
-            if ((uint16_t)((time_seconds/60)%60) == alarm_minutes) {
+            if ((uint16_t)(time_seconds/60) == alarm_minutes) {
                 sprintf(cadena, "Riiing");
                 escribir(cadena, LINEA_ALARMA_MSG);
             } else {
