@@ -11,6 +11,15 @@
 #include <stdint.h>
 #include "lib_PAE2.h" //Libreria grafica + configuracion reloj MSP432
 
+#define LINEA_PAE 1
+#define LINEA_ESTADO 2
+#define LINEA_RETARD 3
+#define LINEA_HORA 5
+#define LINEA_HORA_SELEC 6
+#define LINEA_ALARMA 7
+#define LINEA_ALARMA_SELEC 8
+#define LINEA_ALARMA_MSG 9
+
 char saludo[16] = " PRACTICA 2 PAE"; //max 15 caracteres visibles
 char cadena[16]; //Una linea entera con 15 caracteres visibles + uno oculto de terminacion de cadena (codigo ASCII 0)
 char borrado[] = "               "; //una linea entera de 15 espacios en blanco
@@ -18,13 +27,17 @@ uint8_t linea = 1;
 uint8_t estado = 0;
 uint8_t estado_anterior = 8;
 uint32_t retraso = 500000;
-uint32_t ms_elapsed = 0;
+uint16_t ms_elapsed = 0;
+uint32_t time_seconds = 0; // 0-86399
+uint8_t time_running = 1; // Bool que indica si el reloj está pausado o no
+uint16_t alarm_minutes = 0; // 0-1439
 
 // control leds P7
 
 const uint32_t INC_RETRASO = 10;
 const uint32_t MAX_RETRASO = 5000;
 const uint32_t MIN_RETRASO = 10;
+
 
 /**************************************************************************
  * INICIALIZACIï¿½N DEL CONTROLADOR DE INTERRUPCIONES (NVIC).
@@ -58,6 +71,10 @@ void init_interrupciones()
     // Timers
     NVIC->ICPR[0] |= BIT8; //Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
     NVIC->ISER[0] |= BIT8; //y habilito las interrupciones del puerto
+
+    // Timers
+    NVIC->ICPR[0] |= BITA; //Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
+    NVIC->ISER[0] |= BITA; //y habilito las interrupciones del puerto
 
     __enable_interrupt(); //Habilitamos las interrupciones a nivel global del micro.
 }
@@ -101,7 +118,7 @@ void borrar(uint8_t Linea)
 void escribir(char String[], uint8_t Linea)
 
 {
-    halLcdPrintLine(String, Linea, INVERT_TEXT); //Enviamos la String al LCD, sobreescribiendo la Linea indicada.
+    halLcdPrintLine(String, Linea, NORMAL_TEXT); //Enviamos la String al LCD, sobreescribiendo la Linea indicada.
 }
 
 /**************************************************************************
@@ -202,31 +219,40 @@ void init_timer(void) {
     /****** Timer 0 ******/
     // Retraso de los LEDs
 
-    // TODO pasar a máscaras/constantes/(structs?)
     TA0CTL =
-            TASSEL__ACLK + // clock ACLK
+            TASSEL__SMCLK + // clock SMCLK
             MC__UP +       // modo UP
-            ID__1;         // /1
+            ID__8;         // /8
 
     TA0CCTL0 =
             CCIE; // activar int clock
 
     // Seteamos la constante de tiempo máximo del contador
-    // Lo ponemos a 32 ya que f/1000 = 32.768 (que no es int)
-    TA0CCR0 = 32;
+    // Lo ponemos a 3000 ya que f/1000/8 = 24*10^6/1000/8 = 3000
+    TA0CCR0 = 3000;
 
     /****** Timer 1 ******/
     // hh:mm:ss y alarma
 
-    /*
-     * Introducir alarma desde el robot o desde el código?
-     *
-     * */
+    TA1CTL =
+            TASSEL__ACLK + // clock SMCLK
+            MC__UP +       // modo UP
+            ID__8;         // /8
+
+    TA1CCTL0 =
+            CCIE; // activar int clock
+
+    // Seteamos la constante de tiempo máximo del contador
+    // Lo ponemos a 4096 ya que f/8 = 2^15/8 = 4096
+    TA1CCR0 = 4096;
+
 }
 
 /* Codigo control de los leds P7 */
-void update_leds(uint8_t izquierdaderecha, uint8_t led_actual) {
+void update_leds(uint8_t izquierdaderecha, uint8_t* led_actual) {
     
+    uint8_t temp;
+
     // mover segun sentido
     if (izquierdaderecha)
     {   // sentido ->
@@ -234,149 +260,366 @@ void update_leds(uint8_t izquierdaderecha, uint8_t led_actual) {
          * Se prueba el siguiente. Si se sale, se
          * vuelve a empezar
          **/
-        temp = led_actual << 0x01;
-        led_actual = temp ? temp : 0x01;
-    }
-    else
-    {
+        temp = *led_actual << 0x01;
+        *led_actual = temp ? temp : 0x01;
+    } else {
         // sentido <-
         /**
          * Se prueba el siguiente. Si se sale, se
          * vuelve a empezar
          **/
-        temp = led_actual >> 0x01;
-        led_actual = temp ? temp : 0x80;
+        temp = *led_actual >> 0x01;
+        *led_actual = temp ? temp : 0x80;
     }
-    P7OUT = led_actual;
+
+    P7OUT = *led_actual;
+}
+
+
+void inc_seconds(uint32_t *time) {
+    uint32_t secs = *time%60;
+    *time -= secs;
+    secs++;
+    secs %= 60;
+    *time += secs;
+}
+
+void inc_minutes(uint32_t *time) {
+    uint32_t mins = (*time/60)%60;
+    *time -= mins*60;
+    mins++;
+    mins %= 60;
+    *time += mins*60;
+}
+
+void inc_hours(uint32_t *time) {
+    uint32_t hrs = (*time/3600)%24;
+    *time -= hrs*3600;
+    hrs++;
+    hrs %= 24;
+    *time += hrs*3600;
+}
+
+void dec_seconds(uint32_t *time) {
+    uint32_t secs = *time%60;
+    *time -= secs;
+    secs = secs == 0 ? 59 : secs-1;
+    secs %= 60;
+    *time += secs;
+}
+
+void dec_minutes(uint32_t *time) {
+    uint32_t mins = (*time/60)%60;
+    *time -= mins*60;
+    mins = mins == 0 ? 59 : mins-1;
+    mins %= 60;
+    *time += mins*60;
+}
+
+void dec_hours(uint32_t *time) {
+    uint32_t hrs = (*time/3600)%24;
+    *time -= hrs*3600;
+    hrs = hrs == 0 ? 23 : hrs-1;
+    hrs %= 24;
+    *time += hrs*3600;
+}
+
+void inc_minutes_alarm(uint16_t *time) {
+    uint16_t mins = *time%60;
+    *time -= mins;
+    mins++;
+    mins %= 60;
+    *time += mins;
+}
+
+void inc_hours_alarm(uint32_t *time) {
+    uint32_t hrs = (*time/60)%60;
+    *time -= hrs*60;
+    hrs++;
+    hrs %= 60;
+    *time += hrs*60;
+}
+
+void manage_states(uint8_t estado, uint8_t *izquierdaderecha, uint16_t *retraso_leds, uint8_t *selected_field) {
+
+    /**
+     * ESTADO DE *selected_field:
+     * 0 -> segundos de la hora
+     * 1 -> minutos de la hora
+     * 2 -> horas de la hora
+     * 3 -> minutos de la alarma
+     * 4 -> horas de la alarma
+     */
+
+    uint32_t retraso_temp;
+    uint32_t alarm_seconds;
+
+    switch (estado)
+    {
+    case 1: // S1
+        // leds RGB encendidos
+        P2OUT |= BIT4 | BIT6;
+        P5OUT |= BIT6;
+
+        switch (*selected_field) {
+        case 3: // m de alarma
+            *selected_field = 1;
+            break;
+        case 4: // h de alarma
+            *selected_field = 2;
+            break;
+        }
+
+        break;
+    case 2: // S2
+        // leds RGB apagados
+        P2OUT &= ~(BIT4 | BIT6 );
+        P5OUT &= ~BIT6;
+
+        switch (*selected_field) {
+        case 0: // s de hora
+        case 1: // m de hora
+            *selected_field = 3;
+            break;
+        case 2: // h de hora
+            *selected_field = 4;
+            break;
+        }
+
+        break;
+    case 3: // Left
+        // leds RGB encendidos
+        P2OUT |= BIT4 | BIT6;
+        P5OUT |= BIT6;
+        *izquierdaderecha = 0;
+        P7OUT = 0x00;
+
+        switch (*selected_field) {
+        case 0: // s de hora
+            *selected_field = 1;
+            break;
+        case 1: // m de hora
+            *selected_field = 2;
+            break;
+        case 3: // m de alarma
+            *selected_field = 4;
+            break;
+        }
+
+        break;
+    case 4: // Right
+        // leds RG encendidos y B apagado
+        P2OUT |= BIT4 | BIT6;
+        P5OUT &= ~BIT6;
+
+        switch (*selected_field) {
+        case 1: // m de hora
+            *selected_field = 0;
+            break;
+        case 2: // h de hora
+            *selected_field = 1;
+            break;
+        case 4: // h de alarma
+            *selected_field = 3;
+            break;
+        }
+
+        // direcion ->
+        *izquierdaderecha = 1;
+        P7OUT = 0x00;
+        break;
+    case 5: // Up
+        // leds RB encendidos y G apagado
+        P2OUT |= BIT6;
+        P2OUT &= ~BIT4;
+        P5OUT |= BIT6;
+
+        switch (*selected_field) {
+        case 0: // s de hora
+            if (!time_running) inc_seconds(&time_seconds);
+            break;
+        case 1: // m de hora
+            if (!time_running) inc_minutes(&time_seconds);
+            break;
+        case 2: // h de hora
+            if (!time_running) inc_hours(&time_seconds);
+            break;
+        case 3: // m de alarma
+            alarm_seconds = alarm_minutes * 60;
+            inc_minutes(&alarm_seconds);
+            alarm_minutes = alarm_seconds / 60;
+            break;
+        case 4: // h de alarma
+            alarm_seconds = alarm_minutes * 60;
+            inc_hours(&alarm_seconds);
+            alarm_minutes = alarm_seconds / 60;
+            break;
+        }
+
+        /**
+         * nota: si el retraso es demasiado grande
+         * (overflow), se pone al valor maximo.
+         **/
+        retraso_temp = *retraso_leds + INC_RETRASO;
+        *retraso_leds =
+                (retraso_temp < *retraso_leds) || // Controlamos el overflow
+                (retraso_temp > MAX_RETRASO) ? // Controlamos el valor mínimo permitido
+                        MAX_RETRASO : retraso_temp;
+        break;
+    case 6: // Down
+        // leds GB encendidos y R apagado
+        P2OUT &= ~BIT6;
+        P2OUT |= BIT4;
+        P5OUT |= BIT6;
+
+        switch (*selected_field) {
+        case 0: // s de hora
+            if (!time_running) dec_seconds(&time_seconds);
+            break;
+        case 1: // m de hora
+            if (!time_running) dec_minutes(&time_seconds);
+            break;
+        case 2: // h de hora
+            if (!time_running) dec_hours(&time_seconds);
+            break;
+        case 3: // m de alarma
+            alarm_seconds = alarm_minutes * 60;
+            dec_minutes(&alarm_seconds);
+            alarm_minutes = alarm_seconds / 60;
+            break;
+        case 4: // h de alarma
+            alarm_seconds = alarm_minutes * 60;
+            dec_hours(&alarm_seconds);
+            alarm_minutes = alarm_seconds / 60;
+            break;
+        }
+
+        /**
+         * nota: si el retraso es demasiado pequeÃ±o
+         * (underflow), se pone a 1.
+         **/
+        retraso_temp = *retraso_leds - INC_RETRASO;
+        *retraso_leds =
+                (retraso_temp > *retraso_leds) || // Controlamos el underflow
+                (retraso_temp < MIN_RETRASO) ? // Controlamos el valor mínimo permitido
+                        MIN_RETRASO : retraso_temp;
+        break;
+    case 7: // Center
+        // inversion de los leds
+        P2OUT ^= BIT4 | BIT6;
+        P5OUT ^= BIT6;
+
+        time_running = !time_running;
+
+        if (!time_running) {
+            TA1CCTL0 &= ~CCIE; // Desactivamos interrupciones
+        } else {
+            TA1CCTL0 |=  CCIE; // Reactivamos interrupciones
+        }
+
+        break;
+    }
 }
 
 void main(void)
 {
-    uint32_t retraso_leds;
+    uint16_t retraso_leds;
     uint8_t izquierdaderecha;
-    uint8_t temp;
     uint8_t led_actual;
-    uint32_t retraso_temp;
+    uint32_t prev_seconds;
+    uint8_t selected_field; // 0 -> Hora; 1 -> Alarma
 
     WDTCTL = WDTPW + WDTHOLD;       	// Paramos el watchdog timer
 
     //Inicializaciones:
-    init_ucs_16MHz();       //Ajustes del clock (Unified Clock System)
+    init_ucs_24MHz();       //Ajustes del clock (Unified Clock System)
     init_botons();         //Configuramos botones y leds
     init_timer();
     init_interrupciones(); //Configurar y activar las interrupciones de los botones
     init_LCD();			    // Inicializamos la pantalla
     config_P7_LEDS();       // Configuramos los LEDs del P7
 
-    halLcdPrintLine(saludo, linea, INVERT_TEXT); //escribimos saludo en la primera linea
-    linea++; //Aumentamos el valor de linea y con ello pasamos a la linea siguiente
+    halLcdPrintLine(saludo, LINEA_PAE, INVERT_TEXT); //escribimos saludo en la primera linea
 
     // init variables
     ms_elapsed = 0;
     izquierdaderecha = 1;
     retraso_leds = 50;
     led_actual = 0x00;
+    selected_field = 2;
+    time_running = 1;
+
+    prev_seconds = 86401; // Para que sea distinto a cualquier tiempo inicial
 
     //Bucle principal (infinito):
     do
     {
+
         if (estado_anterior != estado) // Dependiendo del valor del estado se encenderï¿½ un LED u otro.
         {
+
             sprintf(cadena, " estado %d", estado); // Guardamos en cadena la siguiente frase: estado "valor del estado"
-            escribir(cadena, linea);          // Escribimos la cadena al LCD
+            escribir(cadena, LINEA_ESTADO);          // Escribimos la cadena al LCD
             estado_anterior = estado; // Actualizamos el valor de estado_anterior, para que no estï¿½ siempre escribiendo.
 
             // Escribir el delay por pantalla
-            halLcdClearLine(linea+1);
+            halLcdClearLine(LINEA_RETARD);
             sprintf(cadena, " retard %d", retraso_leds);
-            escribir(cadena, linea+1);
+            escribir(cadena, LINEA_RETARD);
 
-            /**********************************************************+
-             A RELLENAR POR EL ALUMNO BLOQUE switch ... case
-             Para gestionar las acciones:
-             Boton S1, estado = 1
-             Boton S2, estado = 2
-             Joystick left, estado = 3
-             Joystick right, estado = 4
-             Joystick up, estado = 5
-             Joystick down, estado = 6
-             Joystick center, estado = 7
-             ***********************************************************/
+            manage_states(estado, &izquierdaderecha, &retraso_leds, &selected_field);
 
-            switch (estado)
-            {
-            case 1:
-                // leds RGB encendidos
-                P2OUT |= BIT4 | BIT6;
-                P5OUT |= BIT6;
-                break;
-            case 2:
-                // leds RGB apagados
-                P2OUT &= ~(BIT4 | BIT6 );
-                P5OUT &= ~BIT6;
-                break;
-            case 3:
-                // leds RGB encendidos
-                P2OUT |= BIT4 | BIT6;
-                P5OUT |= BIT6;
-                izquierdaderecha = 0;
-                P7OUT = 0x00;
+            // Escribir la alarma por pantalla
+            sprintf(cadena, " alarma %02d:%02d", alarm_minutes / 60, alarm_minutes % 60);
+            escribir(cadena, LINEA_ALARMA);
 
+            // Subrallar la alarma si corresponde
+            switch (selected_field) {
+            case 0: // s de hora
+                sprintf(cadena, "            ##");
                 break;
-            case 4:
-                // leds RG encendidos y B apagado
-                P2OUT |= BIT4 | BIT6;
-                P5OUT &= ~BIT6;
-
-                // direcion ->
-                izquierdaderecha = 1;
-                P7OUT = 0x00;
+            case 1: // m de hora
+                sprintf(cadena, "         ##   ");
                 break;
-            case 5:
-                // leds RB encendidos y G apagado
-                P2OUT |= BIT6;
-                P2OUT &= ~BIT4;
-                P5OUT |= BIT6;
-
-                /**
-                 * nota: si el retraso es demasiado grande
-                 * (overflow), se pone al valor maximo.
-                 **/
-                retraso_temp = retraso_leds + INC_RETRASO;
-                retraso_leds =
-                        (retraso_temp < retraso_leds) || // Controlamos el overflow
-                        (retraso_temp > MAX_RETRASO) ? // Controlamos el valor mínimo permitido
-                                MAX_RETRASO : retraso_temp;
+            case 2: // h de hora
+                sprintf(cadena, "      ##      ");
                 break;
-            case 6:
-                // leds GB encendidos y R apagado
-                P2OUT &= ~BIT6;
-                P2OUT |= BIT4;
-                P5OUT |= BIT6;
-
-                /**
-                 * nota: si el retraso es demasiado pequeÃ±o
-                 * (underflow), se pone a 1.
-                 **/
-                retraso_temp = retraso_leds - INC_RETRASO;
-                retraso_leds =
-                        (retraso_temp > retraso_leds) || // Controlamos el underflow
-                        (retraso_temp < MIN_RETRASO) ? // Controlamos el valor mínimo permitido
-                                MIN_RETRASO : retraso_temp;
+            case 3: // m de alarma
+                sprintf(cadena, "           ##");
                 break;
-            case 7:
-                // inversion de los leds
-                P2OUT ^= BIT4 | BIT6;
-                P5OUT ^= BIT6;
+            case 4: // h de alarma
+                sprintf(cadena, "        ##   ");
+                break;
+            default:
                 break;
             }
+
+            escribir(cadena, selected_field <= 2 ? LINEA_HORA_SELEC : LINEA_ALARMA_SELEC);
+            borrar(selected_field <= 2 ? LINEA_ALARMA_SELEC : LINEA_HORA_SELEC);
+
         }
         
+        if (prev_seconds != time_seconds) {
+            // Escribir la hora por pantalla
+            sprintf(cadena, " hora %02d:%02d:%02d", time_seconds / 3600, (time_seconds % 3600) / 60, time_seconds % 60);
+            escribir(cadena, LINEA_HORA);
+
+            // Riiiing
+            if ((uint16_t)((time_seconds/60)%60) == alarm_minutes) {
+                sprintf(cadena, "Riiing");
+                escribir(cadena, LINEA_ALARMA_MSG);
+            } else {
+                borrar(LINEA_ALARMA_MSG);
+            }
+
+            prev_seconds = time_seconds;
+        }
+
         // contar si ha pasado suficiente tiempo
         if (retraso_leds <= ms_elapsed)
         {
             ms_elapsed = 0; // se resetea el contador
-            update_leds(izquierdaderecha, led_actual)
+            update_leds(izquierdaderecha, &led_actual);
         }
 
     }
@@ -507,8 +750,18 @@ void PORT5_IRQHandler(void)
 void TA0_0_IRQHandler(void) {
     TA0CCTL0 &= ~CCIE; // Desactivamos interrupciones
 
-    ms_elapsed++; // Ha pasado 1 ms
+    ms_elapsed++; // Ha pasado 1ms
 
     TA0CCTL0 &= ~CCIFG; // Limpiar flag
     TA0CCTL0 |=  CCIE;  // Reactivamos interrupciones
+}
+
+void TA1_0_IRQHandler(void) {
+    TA1CCTL0 &= ~CCIE; // Desactivamos interrupciones
+
+    time_seconds++; // Ha pasado 1s
+    time_seconds %= 86400; // Un día = 86400s
+
+    TA1CCTL0 &= ~CCIFG; // Limpiar flag
+    TA1CCTL0 |=  CCIE;  // Reactivamos interrupciones
 }
