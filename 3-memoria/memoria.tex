@@ -11,7 +11,7 @@ l’ús de Timers i Interrupcions}
     Xavier Ripoll
 }
 
-\date{23 de març de 2018} % TODO poner la fecha de entrega
+\date{23 de març de 2018}
 
 \begin{document}
 \maketitle
@@ -40,10 +40,10 @@ rellotge que porti l'hora i una alarma, ambdues programables.
 
 \subsection{Recursos utilitzats}
 % Quins recursos del Microcontrolador, Placa d’Experimentació i Robot es fan servir.
-Utilitzarem el \texttt{ACLK} com a \textit{clock} base per al \textit{timer}
-que controla els LEDs i el rellotge \texttt{SMCLK} per controlar l'hora i
-l'alarma.
-% TODO ^ poner los clocks que usamos para cada ejercicio
+Utilitzarem el \texttt{SMCLK} com a \textit{clock} base per al \textit{timer}
+que controla els LEDs i el rellotge \texttt{ACLK} per controlar l'hora i
+l'alarma. Aquesta decisió és deguda a que necessitem una freqüència molt més alta
+pel rellotge dels LEDs (1000Hz) que pel que porta l'hora (1Hz).
 
 De la placa \textit{Boosterpack MK II} volem fer servir tant el
 \textit{joystick} com els polsadors S1 i S2 com a entrades, a més a més de la
@@ -56,6 +56,46 @@ per mostrar la llum que es va ``desplaçant''.
 
 \subsection{Configuració dels recursos}
 % Com s’han configurat els diferents recursos.
+\subsubsection{Configuració dels LEDs, botons i \textit{joysticks}}
+
+La fem de forma idèntica a la pràctica anterior, degut a que la programació
+de l'efecte que tenen els \textit{inputs} està al \texttt{main} i no
+a les rutines d'interrupció.
+
+\subsubsection{Configuració dels \textit{timers}}
+Abans de configurar els timers, cridem la funció \texttt{init\_ucs\_24MHz} per
+a que inicialitzi el \textit{unified clock system}.
+
+En els dos \textit{timers} s'ha usat mode \textit{pull up}. Com ja hem comentat,
+per al \textit{timer} dels LEDs usem el \textit{clock} de freqüència alta i
+pel de l'hora el \textit{clock} de freqüència baixa.
+
+En ambdós casos hem usat un divisor de freqüència de valor 8 perquè el valor
+dels \texttt{CCR}s no sigui massa alt, seguint el raonament següent:
+
+\begin{equation*}
+  CCR = \frac{F}{fd}
+\end{equation*}
+
+On $CCR$ és la constant \texttt{CCR} que marca quants cicles fa el comptador
+abans de tornar a 0; $F$ és la freqüència del rellotge; $f$ la freqüència que
+volem aconseguir; i $d$ el divisor de freqüència.
+
+En el cas del \textit{timer} dels LEDs, tenim:
+
+\begin{equation*}
+  CCR = \frac{24\times10^{6}\mathrm{Hz}}{1000\mathrm{Hz}\times 8} = 3000
+\end{equation*}
+
+En l'altre \textit{timer}, trobem:
+
+\begin{equation*}
+  CCR = \frac{2^{15}\mathrm{Hz}}{1\mathrm{Hz}\times 8} = 4096
+\end{equation*}
+
+
+
+
 
 \subsection{Funcions utilitzades}
 % Com i per quines funcions es fan servir.

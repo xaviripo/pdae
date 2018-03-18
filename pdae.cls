@@ -38,6 +38,7 @@
 \RequirePackage{color}          % Code coloring
 \RequirePackage{zi4}            % Nice font
 \RequirePackage{listings}
+\usepackage{amsmath}
 
 % Colors %
 \definecolor{bluekeywords}{rgb}{0.13, 0.13, 1}
