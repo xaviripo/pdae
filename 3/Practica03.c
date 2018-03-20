@@ -20,16 +20,36 @@
 #define LINEA_ALARMA_SELEC 8
 #define LINEA_ALARMA_MSG 9
 
+// Estados
+#define S1 1
+#define S2 2
+#define LEFT 3
+#define RIGHT 4
+#define UP 5
+#define DOWN 6
+#define CENTER 7
+
+typedef uint8_t bool;
+typedef uint8_t Estado; /* {
+    S1,
+    S2,
+    LEFT,
+    RIGHT,
+    UP,
+    DOWN,
+    CENTER,
+} Estado; */
+
 char saludo[16] = " PRACTICA 2 PAE"; //max 15 caracteres visibles
 char cadena[16]; //Una linea entera con 15 caracteres visibles + uno oculto de terminacion de cadena (codigo ASCII 0)
 char borrado[] = "               "; //una linea entera de 15 espacios en blanco
 uint8_t linea = 1;
-uint8_t estado = 0;
-uint8_t estado_anterior = 8;
+Estado estado = 0;
+Estado estado_anterior = 8;
 uint32_t retraso = 500000;
 uint16_t ms_elapsed = 0;
 uint32_t time_seconds = 0; // 0-86399
-uint8_t time_running = 1; // Bool que indica si el reloj está pausado o no
+bool time_running = 1; // Bool que indica si el reloj está pausado o no
 uint16_t alarm_minutes = 0; // 0-1439
 
 // control leds P7
@@ -340,7 +360,7 @@ void inc_hours_alarm(uint32_t *time) {
     *time += hrs*60;
 }
 
-void manage_states(uint8_t estado, uint8_t *izquierdaderecha, uint16_t *retraso_leds, uint8_t *selected_field) {
+void manage_states(Estado estado, bool *izquierdaderecha, uint16_t *retraso_leds, uint8_t *selected_field) {
 
     /**
      * ESTADO DE *selected_field:
@@ -356,7 +376,7 @@ void manage_states(uint8_t estado, uint8_t *izquierdaderecha, uint16_t *retraso_
 
     switch (estado)
     {
-    case 1: // S1
+    case S1:// 1: // S1
         // leds RGB encendidos
         P2OUT |= BIT4 | BIT6;
         P5OUT |= BIT6;
@@ -371,7 +391,7 @@ void manage_states(uint8_t estado, uint8_t *izquierdaderecha, uint16_t *retraso_
         }
 
         break;
-    case 2: // S2
+    case S2: // 2: // S2
         // leds RGB apagados
         P2OUT &= ~(BIT4 | BIT6 );
         P5OUT &= ~BIT6;
@@ -387,7 +407,7 @@ void manage_states(uint8_t estado, uint8_t *izquierdaderecha, uint16_t *retraso_
         }
 
         break;
-    case 3: // Left
+    case LEFT: // 3: // Left
         // leds RGB encendidos
         P2OUT |= BIT4 | BIT6;
         P5OUT |= BIT6;
@@ -407,7 +427,7 @@ void manage_states(uint8_t estado, uint8_t *izquierdaderecha, uint16_t *retraso_
         }
 
         break;
-    case 4: // Right
+    case RIGHT: // Right
         // leds RG encendidos y B apagado
         P2OUT |= BIT4 | BIT6;
         P5OUT &= ~BIT6;
@@ -428,7 +448,7 @@ void manage_states(uint8_t estado, uint8_t *izquierdaderecha, uint16_t *retraso_
         *izquierdaderecha = 1;
         P7OUT = 0x00;
         break;
-    case 5: // Up
+    case UP: // Up
         // leds RB encendidos y G apagado
         P2OUT |= BIT6;
         P2OUT &= ~BIT4;
@@ -466,7 +486,7 @@ void manage_states(uint8_t estado, uint8_t *izquierdaderecha, uint16_t *retraso_
                 (retraso_temp > MAX_RETRASO) ? // Controlamos el valor mínimo permitido
                         MAX_RETRASO : retraso_temp;
         break;
-    case 6: // Down
+    case DOWN: // Down
         // leds GB encendidos y R apagado
         P2OUT &= ~BIT6;
         P2OUT |= BIT4;
@@ -504,7 +524,7 @@ void manage_states(uint8_t estado, uint8_t *izquierdaderecha, uint16_t *retraso_
                 (retraso_temp < MIN_RETRASO) ? // Controlamos el valor mínimo permitido
                         MIN_RETRASO : retraso_temp;
         break;
-    case 7: // Center
+    case CENTER: // Center
         // inversion de los leds
         P2OUT ^= BIT4 | BIT6;
         P5OUT ^= BIT6;
@@ -524,7 +544,7 @@ void manage_states(uint8_t estado, uint8_t *izquierdaderecha, uint16_t *retraso_
 void main(void)
 {
     uint16_t retraso_leds;
-    uint8_t izquierdaderecha;
+    bool izquierdaderecha;
     uint8_t led_actual;
     uint32_t prev_seconds;
     uint8_t selected_field; // 0 -> Hora; 1 -> Alarma
@@ -662,7 +682,7 @@ void PORT3_IRQHandler(void)
     {
 
     case 0x0C: // P3.5
-        estado = 2;
+        estado = S2;// 2;
         break;
     }
 
@@ -691,13 +711,13 @@ void PORT4_IRQHandler(void)
     switch (flag)
     {
     case 0x0C: // P4.5
-        estado = 4;
+        estado = RIGHT; // 4;
         break;
     case 0x10: // P4.7
-        estado = 3;
+        estado = LEFT; // 3;
         break;
     case 0x04: // P4.1
-        estado = 7;
+        estado = CENTER; // 7;
         break;
     }
 
@@ -730,13 +750,13 @@ void PORT5_IRQHandler(void)
     switch (flag)
     {
     case 0x0A: // P5.4
-        estado = 5;
+        estado = UP; //5;
         break;
     case 0x0C: // P5.5
-        estado = 6;
+        estado = DOWN;// 6;
         break;
     case 0x04: // P5.1
-        estado = 1;
+        estado = S1; // 1;
         break;
     }
 
