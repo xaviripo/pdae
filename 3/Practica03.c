@@ -10,35 +10,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "lib_PAE2.h" //Libreria grafica + configuracion reloj MSP432
-
-#define LINEA_PAE 1
-#define LINEA_ESTADO 2
-#define LINEA_RETARD 3
-#define LINEA_HORA 5
-#define LINEA_HORA_SELEC 6
-#define LINEA_ALARMA 7
-#define LINEA_ALARMA_SELEC 8
-#define LINEA_ALARMA_MSG 9
-
-// Estados
-#define S1 1
-#define S2 2
-#define LEFT 3
-#define RIGHT 4
-#define UP 5
-#define DOWN 6
-#define CENTER 7
-
-typedef uint8_t bool;
-typedef uint8_t Estado; /* {
-    S1,
-    S2,
-    LEFT,
-    RIGHT,
-    UP,
-    DOWN,
-    CENTER,
-} Estado; */
+#include "utils.h"
 
 char saludo[16] = " PRACTICA 2 PAE"; //max 15 caracteres visibles
 char cadena[16]; //Una linea entera con 15 caracteres visibles + uno oculto de terminacion de cadena (codigo ASCII 0)
@@ -57,7 +29,6 @@ uint16_t alarm_minutes = 0; // 0-1439
 const uint32_t INC_RETRASO = 10;
 const uint32_t MAX_RETRASO = 5000;
 const uint32_t MIN_RETRASO = 10;
-
 
 /**************************************************************************
  * INICIALIZACI�N DEL CONTROLADOR DE INTERRUPCIONES (NVIC).
@@ -296,69 +267,6 @@ void update_leds(uint8_t izquierdaderecha, uint8_t* led_actual) {
 }
 
 
-void inc_seconds(uint32_t *time) {
-    uint32_t secs = *time%60;
-    *time -= secs;
-    secs++;
-    secs %= 60;
-    *time += secs;
-}
-
-void inc_minutes(uint32_t *time) {
-    uint32_t mins = (*time/60)%60;
-    *time -= mins*60;
-    mins++;
-    mins %= 60;
-    *time += mins*60;
-}
-
-void inc_hours(uint32_t *time) {
-    uint32_t hrs = (*time/3600)%24;
-    *time -= hrs*3600;
-    hrs++;
-    hrs %= 24;
-    *time += hrs*3600;
-}
-
-void dec_seconds(uint32_t *time) {
-    uint32_t secs = *time%60;
-    *time -= secs;
-    secs = secs == 0 ? 59 : secs-1;
-    secs %= 60;
-    *time += secs;
-}
-
-void dec_minutes(uint32_t *time) {
-    uint32_t mins = (*time/60)%60;
-    *time -= mins*60;
-    mins = mins == 0 ? 59 : mins-1;
-    mins %= 60;
-    *time += mins*60;
-}
-
-void dec_hours(uint32_t *time) {
-    uint32_t hrs = (*time/3600)%24;
-    *time -= hrs*3600;
-    hrs = hrs == 0 ? 23 : hrs-1;
-    hrs %= 24;
-    *time += hrs*3600;
-}
-
-void inc_minutes_alarm(uint16_t *time) {
-    uint16_t mins = *time%60;
-    *time -= mins;
-    mins++;
-    mins %= 60;
-    *time += mins;
-}
-
-void inc_hours_alarm(uint32_t *time) {
-    uint32_t hrs = (*time/60)%60;
-    *time -= hrs*60;
-    hrs++;
-    hrs %= 60;
-    *time += hrs*60;
-}
 
 void manage_states(Estado estado, bool *izquierdaderecha, uint16_t *retraso_leds, uint8_t *selected_field) {
 
@@ -465,14 +373,18 @@ void manage_states(Estado estado, bool *izquierdaderecha, uint16_t *retraso_leds
             if (!time_running) inc_hours(&time_seconds);
             break;
         case 3: // m de alarma
+            inc_minutes_alarm(&alarm_minutes);
+            /* TODO remove
             alarm_seconds = alarm_minutes * 60;
             inc_minutes(&alarm_seconds);
-            alarm_minutes = alarm_seconds / 60;
+            alarm_minutes = alarm_seconds / 60;*/
             break;
         case 4: // h de alarma
+            inc_hours_alarm(&alarm_minutes);
+            /* TODO remove
             alarm_seconds = alarm_minutes * 60;
             inc_hours(&alarm_seconds);
-            alarm_minutes = alarm_seconds / 60;
+            alarm_minutes = alarm_seconds / 60;*/
             break;
         }
 
@@ -503,14 +415,18 @@ void manage_states(Estado estado, bool *izquierdaderecha, uint16_t *retraso_leds
             if (!time_running) dec_hours(&time_seconds);
             break;
         case 3: // m de alarma
+            dec_minutes_alarm($alarm_minutes);
+            /* TODO remove
             alarm_seconds = alarm_minutes * 60;
             dec_minutes(&alarm_seconds);
-            alarm_minutes = alarm_seconds / 60;
+            alarm_minutes = alarm_seconds / 60;*/
             break;
         case 4: // h de alarma
+            dec_hours_alarm($alarm_minutes);
+            /* TODO remove
             alarm_seconds = alarm_minutes * 60;
             dec_hours(&alarm_seconds);
-            alarm_minutes = alarm_seconds / 60;
+            alarm_minutes = alarm_seconds / 60;*/
             break;
         }
 
@@ -540,6 +456,33 @@ void manage_states(Estado estado, bool *izquierdaderecha, uint16_t *retraso_leds
         break;
     }
 }
+
+void mostrar_indicador(uint8_t selected_field) {
+    // Subrallar la alarma si corresponde
+    switch (selected_field) {
+    case 0: // s de hora
+        sprintf(cadena, "            ##");
+        break;
+    case 1: // m de hora
+        sprintf(cadena, "         ##   ");
+        break;
+    case 2: // h de hora
+        sprintf(cadena, "      ##      ");
+        break;
+    case 3: // m de alarma
+        sprintf(cadena, "           ##");
+        break;
+    case 4: // h de alarma
+        sprintf(cadena, "        ##   ");
+        break;
+    default:
+        break;
+    }
+
+    escribir(cadena, selected_field <= 2 ? LINEA_HORA_SELEC : LINEA_ALARMA_SELEC);
+    borrar(selected_field <= 2 ? LINEA_ALARMA_SELEC : LINEA_HORA_SELEC);
+}
+
 
 void main(void)
 {
@@ -587,35 +530,14 @@ void main(void)
             sprintf(cadena, " retard %d", retraso_leds);
             escribir(cadena, LINEA_RETARD);
 
+            // se controla que hay que hacer en este estado
             manage_states(estado, &izquierdaderecha, &retraso_leds, &selected_field);
 
-            // Escribir la alarma por pantalla
+            // Escribir la alarma por pantalla:
             sprintf(cadena, " alarma %02d:%02d", alarm_minutes / 60, alarm_minutes % 60);
             escribir(cadena, LINEA_ALARMA);
 
-            // Subrallar la alarma si corresponde
-            switch (selected_field) {
-            case 0: // s de hora
-                sprintf(cadena, "            ##");
-                break;
-            case 1: // m de hora
-                sprintf(cadena, "         ##   ");
-                break;
-            case 2: // h de hora
-                sprintf(cadena, "      ##      ");
-                break;
-            case 3: // m de alarma
-                sprintf(cadena, "           ##");
-                break;
-            case 4: // h de alarma
-                sprintf(cadena, "        ##   ");
-                break;
-            default:
-                break;
-            }
-
-            escribir(cadena, selected_field <= 2 ? LINEA_HORA_SELEC : LINEA_ALARMA_SELEC);
-            borrar(selected_field <= 2 ? LINEA_ALARMA_SELEC : LINEA_HORA_SELEC);
+            mostrar_indicador(uint8_t selected_field)
 
         }
         
