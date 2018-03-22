@@ -1,0 +1,68 @@
+@startuml
+
+title manage_states
+
+
+start
+
+if (estado) then (S1)
+  :R = 1
+  G = 1
+  B = 1;
+  :Canviar el camp
+      seleccionat
+       al rellotge;
+else if () then (S2)
+  :R = 0
+  G = 0
+  B = 0;
+  :Canviar el camp
+      seleccionat
+       a l'alarma;
+else if () then (LEFT)
+  :R = 1
+  G = 1
+  B = 1;
+  :Canviar el camp
+    seleccionat al
+    de l'esquerra;
+  :LEDs de dreta
+  a esquerra;
+else if () then (RIGHT)
+  :R = 0
+  G = 1
+  B = 1;
+  :Canviar el camp
+    seleccionat al
+      de la dreta;
+  :LEDs d'esquerra
+  a dreta;
+else if () then (UP)
+  :R = 1
+  G = 0
+  B = 1;
+  :Incrementar el valor
+  del camp seleccionat;
+  :Augmentar
+      retard
+   dels LEDs;
+else if () then (DOWN)
+  :R = 1
+  G = 1
+  B = 0;
+  :Decrementar el valor
+  del camp seleccionat;
+  :Disminuir
+    retard
+  dels LEDs;
+else if () then (CENTER)
+  :R = ~R
+  G = ~G
+  B = ~B;
+  :Pausar el
+   rellotge;
+endif
+
+stop
+
+@enduml

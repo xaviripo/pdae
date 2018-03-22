@@ -37,6 +37,30 @@ La segona part consisteix en dissenyar tant la interfície (per la pantalla LCD)
 com la implementació (novament amb \textit{clocks} i \textit{timers}) d'un
 rellotge que porti l'hora i una alarma, ambdues programables.
 
+Com a petita indicació, expliquem aquí com funcionen els \textit{inputs} per
+poder emprar correctament el sistema de rellotge i alarma:
+
+En pantalla es mostraran dos nombres amb el format:
+
+\begin{lstlisting}
+ hora HH:MM:SS
+            ##
+ alarma HH:MM
+
+\end{lstlisting}
+
+On \texttt{HH:MM:SS} mostra l'hora del rellotge i \texttt{HH:MM} l'alarma
+programada amb precisió de minut, com es demana a l'enunciat de la pràctica.
+
+Els dos coixinets (\texttt{\#\#}) subratllen el camp que volem modificar.
+Amb el \textit{joystick} esquerra i dret canviem als camps dels costats,
+mentre que amb adalt i abaix incrementem i decrementem (corresponentment)
+el valor. Prement el botó S1 seleccionem el rellotge, mentre que amb S2
+seleccionem l'alarma.
+
+Per evitar conflictes de sincronisme, cal pausar el rellotge abans
+de poder modificar-lo. Prèmer el \textit{joystick} alterna l'estat de pausa
+del rellotge.
 
 \subsection{Recursos utilitzats}
 % Quins recursos del Microcontrolador, Placa d’Experimentació i Robot es fan servir.
@@ -97,18 +121,48 @@ En l'altre \textit{timer}, trobem:
 \subsection{Funcions utilitzades}
 % Com i per quines funcions es fan servir.
 
+Per aquesta pràctica hem decidit modularitzar lleugerament el codi, separant
+el "cos" del \texttt{main} a una funció \texttt{manage\_states} que s'encarrega
+de canviar l'\textit{output} en funció de l'estat actual.
+
+La resta de funcions són heretades de la pràctica anterior, entre elles
+destaquen els \textit{handlers} de les interrupcions i les funcions de
+configuració del \textit{hardware}.
+
 \subsection{Problemes}
 % Problemes que han sorgit (que no siguin de compilació) i com s’han solucionat.
-El problema principal amb el que ens vam trobar, va ser el fet que si es vol modificar el temps del rellotge, era possible que es produís un canvi en el camp que es vol modificar (passa un segon, per exemple) i llavors el canvi de temps no tenia el funcionament esperat. Per a solucionar-ho, vam introduir la funció d'aturar el rellotge, i per a modificar el temps será necessari pausar el temps.
+El problema principal amb el que ens vam trobar, va ser el fet que si es vol
+modificar el temps del rellotge, era possible que es produís un canvi en el
+camp que es vol modificar (passa un segon, per exemple) i llavors el canvi de
+temps no tenia el funcionament esperat. Per a solucionar-ho, vam introduir la
+funció d'aturar el rellotge, i per a modificar el temps serà necessari
+pausar-lo primer.
 
 \subsection{Conclusions}
+
+La configuració i ús dels \textit{timers} i interrupcions ens ha semblat
+sorprenentment senzilla en comparació a l'experiència que vam tenir realitzant
+la pràctica anterior. Això ens fa creure que gran part de la dificultat que
+patim en programar el microcontrolador es deguda més aviat a la corba
+d'aprenentatge que a la complicació que presenta en sí.
+
+També hem intentat netejar i ordenar el codi per poder reutilitzar-lo el
+màxim possible en les properes pràctiques.
 
 \section{Comentari del codi}
 
 \subsection{Inicialització i ús dels timers}
 
-En aquesta pràctica farem servir dos timers diferents, el \texttt{TA0} i el \texttt{TA1}. En conseqüència, cal que els activem en els tres nivells.
-En el primer nivell, farem servir una funció \texttt{init\_timer} que configurará els timers per a que facin servir el clock (\texttt{SMLK} pel timer 0 i \texttt{ACLK} pel timer 1), el mode \texttt{UP} i un divisor adient (8 en aquest cas). A més com volem comptar fins a 1 segon o 1 ms (pels clocks 1 i 0 respectivament), cal que posem un valor adeqüat a TAxCCR0.
+En aquesta pràctica farem servir dos \textit{timers} diferents, el
+\texttt{TA0} i el \texttt{TA1}. En conseqüència, cal que els activem en els
+tres nivells.
+
+En el primer nivell, farem servir una funció \texttt{init\_timer} que
+configurarà els \textit{timers} per a que facin servir el clock (\texttt{SMLK}
+pel \textit{timer} 0 i \texttt{ACLK} pel \textit{timer} 1), el mode \texttt{UP}
+i un divisor adient (8 en aquest cas). A més, com volem comptar fins a 1 segon
+o 1 mil·lisegon (pels \textit{clocks} 1 i 0 respectivament), cal que posem un
+valor adequat a \texttt{TAxCCR0}.
 
 \begin{lstlisting}[language=C]
 void init_timer(void) {
@@ -145,7 +199,12 @@ void init_timer(void) {
 }
 \end{lstlisting}
 
-A continuació per conficurar la resta de nivells de la interrupció, ampliarem la funció \texttt{init\_interrupciones} per a que consideri els dos timers que volem configurar. Notem que \texttt{BIT8} farà referència al timer dels leds, i \texttt{BITA} al timer del rellotge. Finalment, es fa una crida a \texttt{\_\_enable\_interrupt}.
+A continuació, per configurar la resta de nivells de la interrupció, ampliarem
+la funció \texttt{init\_interrupciones} per a que consideri els dos
+\textit{timers} que volem configurar.
+Notem que \texttt{BIT8} farà referència al \textit{timer} dels leds, i
+\texttt{BITA} al timer del rellotge. Finalment, es fa una crida a
+\texttt{\_\_enable\_interrupt}.
 
 \begin{lstlisting}[language=C]
 void init_interrupciones()
@@ -164,7 +223,13 @@ void init_interrupciones()
 }
 \end{lstlisting}
 
-% TODO EXPLICAR HANDLERS
+Per les interrupcions que provoquen cadascun dels \textit{timers} al passar
+el temps indicat, creem dos \textit{handlers} (\texttt{TA0\_0\_IRQHandler} i
+\texttt{TA1\_0\_IRQHandler}). El primer serà cridat cada mil·lisegon mentre que
+l'altre cada segon, d'acord amb la configuració abans especificada. Aquest
+últim, a més de fer increments de 1 cada cop que es cridat, també tornarà a
+0 quan arribi a 86400 (és a dir, un dia sencer), per a que el rellotge torni
+a marcar les 00:00.
 
 \begin{lstlisting}[language=C]
 /**
@@ -179,10 +244,41 @@ void TA0_0_IRQHandler(void) {
     TA0CCTL0 &= ~CCIFG; // Limpiar flag
     TA0CCTL0 |=  CCIE;  // Reactivamos interrupciones
 }
-\end{lstlisting}
-\textit{Cal notar que ms\_elapsed és una variable global que compta els ms que han passat}
 
+/**
+ * Handler del timer que se activa cada segundo.
+ * Este timer se usara para el reloj y la hora
+ **/
+void TA1_0_IRQHandler(void) {
+    TA1CCTL0 &= ~CCIE; // Desactivamos interrupciones
+
+    time_seconds++; // Ha pasado 1s
+    time_seconds %= 86400; // Un dia = 86400s
+
+    TA1CCTL0 &= ~CCIFG; // Limpiar flag
+    TA1CCTL0 |=  CCIE;  // Reactivamos interrupciones
+}
+\end{lstlisting}
+\textit{Cal notar que \texttt{ms\_elapsed} és una variable global que compta
+els mil·lisegons que han passat.}
+
+% TODO (no a aqui necessariament) explicar com funcionen els inputs! i fer diagrama dels outputs per pantalla?
 
 \section{Diagrames de flux}
+
+S'inclouen els diagrames del \texttt{main} i les subrutines que inclou.
+
+Els nous \textit{handlers} afegits solament incrementen constants com ja s'ha
+esmentat a la secció de comentari del codi.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=.45]{main}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=.4]{manage_states}
+\end{figure}
 
 \end{document}

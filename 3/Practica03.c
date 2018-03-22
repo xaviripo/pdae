@@ -417,14 +417,14 @@ void manage_states(Estado estado, bool *izquierdaderecha, uint16_t *retraso_leds
             if (!time_running) dec_hours(&time_seconds);
             break;
         case 3: // m de alarma
-            dec_minutes_alarm($alarm_minutes);
+            dec_minutes_alarm(&alarm_minutes);
             /* TODO remove
             alarm_seconds = alarm_minutes * 60;
             dec_minutes(&alarm_seconds);
             alarm_minutes = alarm_seconds / 60;*/
             break;
         case 4: // h de alarma
-            dec_hours_alarm($alarm_minutes);
+            dec_hours_alarm(&alarm_minutes);
             /* TODO remove
             alarm_seconds = alarm_minutes * 60;
             dec_hours(&alarm_seconds);

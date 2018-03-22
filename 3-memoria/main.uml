@@ -1,0 +1,41 @@
+@startuml
+
+title main
+
+
+start
+
+:Inicialitzacions;
+
+while (Bucle infinit)
+
+if (estado_anterior) then ( != estado)
+  :manage_states;
+else ( == estado)
+endif
+
+if (Ha passat un segon?) then (Sí)
+  :Actualitzar rellotge;
+  if (És el minut de l'alarma?) then (Sí)
+    :Riiing;
+  else (No)
+  endif
+else (No)
+endif
+
+if (Ha passat el temps de retard?) then (Sí)
+  :Resetejar comptador de temps;
+  if (Sentit dels LEDs) then (Esquerra a dreta)
+    :Desplaçar llum a la dreta;
+  else (Dreta a esquerra)
+    :Desplaçar llum a l'esquerra;
+  endif
+else (No)
+  :Incrementar comptador de temps;
+endif
+
+endwhile
+
+stop
+
+@enduml
