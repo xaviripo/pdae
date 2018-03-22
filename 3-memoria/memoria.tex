@@ -99,10 +99,89 @@ En l'altre \textit{timer}, trobem:
 
 \subsection{Problemes}
 % Problemes que han sorgit (que no siguin de compilació) i com s’han solucionat.
+El problema principal amb el que ens vam trobar, va ser el fet que si es vol modificar el temps del rellotge, era possible que es produís un canvi en el camp que es vol modificar (passa un segon, per exemple) i llavors el canvi de temps no tenia el funcionament esperat. Per a solucionar-ho, vam introduir la funció d'aturar el rellotge, i per a modificar el temps será necessari pausar el temps.
 
 \subsection{Conclusions}
 
 \section{Comentari del codi}
+
+\subsection{Inicialització i ús dels timers}
+
+En aquesta pràctica farem servir dos timers diferents, el \texttt{TA0} i el \texttt{TA1}. En conseqüència, cal que els activem en els tres nivells.
+En el primer nivell, farem servir una funció \texttt{init\_timer} que configurará els timers per a que facin servir el clock (\texttt{SMLK} pel timer 0 i \texttt{ACLK} pel timer 1), el mode \texttt{UP} i un divisor adient (8 en aquest cas). A més com volem comptar fins a 1 segon o 1 ms (pels clocks 1 i 0 respectivament), cal que posem un valor adeqüat a TAxCCR0.
+
+\begin{lstlisting}[language=C]
+void init_timer(void) {
+
+    /****** Timer 0 ******/
+    // Retraso de los LEDs
+
+    TA0CTL =
+            TASSEL__SMCLK + // clock SMCLK
+            MC__UP +        // modo UP
+            ID__8;          // /8
+
+    TA0CCTL0 =
+            CCIE; // activar int clock
+
+    // Ponemos la constante de tiempo maximo del contador
+    // Lo ponemos a 3000 ya que f/1000/8 = 24*10^6/1000/8 = 3000
+    TA0CCR0 = 3000;
+
+    /****** Timer 1 ******/
+    // hh:mm:ss y alarma
+
+    TA1CTL =
+            TASSEL__ACLK + // clock SMCLK
+            MC__UP +       // modo UP
+            ID__8;         // /8
+
+    TA1CCTL0 =
+            CCIE; // activar int clock
+
+    // Seteamos la constante de tiempo maximo del contador
+    // Lo ponemos a 4096 ya que f/8 = 2^15/8 = 4096
+    TA1CCR0 = 4096;
+}
+\end{lstlisting}
+
+A continuació per conficurar la resta de nivells de la interrupció, ampliarem la funció \texttt{init\_interrupciones} per a que consideri els dos timers que volem configurar. Notem que \texttt{BIT8} farà referència al timer dels leds, i \texttt{BITA} al timer del rellotge. Finalment, es fa una crida a \texttt{\_\_enable\_interrupt}.
+
+\begin{lstlisting}[language=C]
+void init_interrupciones()
+{
+ 	/* [...] */
+
+    // Timer leds
+    NVIC->ICPR[0] |= BIT8; //Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
+    NVIC->ISER[0] |= BIT8; //y habilito las interrupciones del puerto
+
+    // Timer hora
+    NVIC->ICPR[0] |= BITA; //Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
+    NVIC->ISER[0] |= BITA; //y habilito las interrupciones del puerto
+
+    __enable_interrupt(); //Habilitamos las interrupciones a nivel global del micro.
+}
+\end{lstlisting}
+
+% TODO EXPLICAR HANDLERS
+
+\begin{lstlisting}[language=C]
+/**
+ * Handler del timer que se activa cada ms.
+ * Este timer se usara para el delay de los leds
+ **/
+void TA0_0_IRQHandler(void) {
+    TA0CCTL0 &= ~CCIE; // Desactivamos interrupciones
+
+    ms_elapsed++; // Ha pasado 1ms
+
+    TA0CCTL0 &= ~CCIFG; // Limpiar flag
+    TA0CCTL0 |=  CCIE;  // Reactivamos interrupciones
+}
+\end{lstlisting}
+\textit{Cal notar que ms\_elapsed és una variable global que compta els ms que han passat}
+
 
 \section{Diagrames de flux}
 

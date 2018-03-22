@@ -59,11 +59,11 @@ void init_interrupciones()
     NVIC->ICPR[1] |= BIT7; //Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
     NVIC->ISER[1] |= BIT7; //y habilito las interrupciones del puerto
 
-    // Timers
+    // Timer leds
     NVIC->ICPR[0] |= BIT8; //Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
     NVIC->ISER[0] |= BIT8; //y habilito las interrupciones del puerto
 
-    // Timers
+    // Timer hora
     NVIC->ICPR[0] |= BITA; //Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
     NVIC->ISER[0] |= BITA; //y habilito las interrupciones del puerto
 
@@ -212,8 +212,8 @@ void init_timer(void) {
 
     TA0CTL =
             TASSEL__SMCLK + // clock SMCLK
-            MC__UP +       // modo UP
-            ID__8;         // /8
+            MC__UP +        // modo UP
+            ID__8;          // /8
 
     TA0CCTL0 =
             CCIE; // activar int clock
@@ -226,7 +226,7 @@ void init_timer(void) {
     // hh:mm:ss y alarma
 
     TA1CTL =
-            TASSEL__ACLK + // clock SMCLK
+            TASSEL__ACLK + // clock ACLK
             MC__UP +       // modo UP
             ID__8;         // /8
 
@@ -236,7 +236,6 @@ void init_timer(void) {
     // Seteamos la constante de tiempo máximo del contador
     // Lo ponemos a 4096 ya que f/8 = 2^15/8 = 4096
     TA1CCR0 = 4096;
-
 }
 
 /* Codigo control de los leds P7 */
@@ -520,8 +519,8 @@ void main(void)
 
         if (estado_anterior != estado) // Dependiendo del valor del estado se encenderï¿½ un LED u otro.
         {
-
-            sprintf(cadena, " estado %d", estado); // Guardamos en cadena la siguiente frase: estado "valor del estado"
+            
+            sprintf(cadena, " estado %d", estado); // Guardamos en cadena la siguiente frase: estado <valor del estado>
             escribir(cadena, LINEA_ESTADO);          // Escribimos la cadena al LCD
             estado_anterior = estado; // Actualizamos el valor de estado_anterior, para que no estï¿½ siempre escribiendo.
 
@@ -530,34 +529,35 @@ void main(void)
             sprintf(cadena, " retard %d", retraso_leds);
             escribir(cadena, LINEA_RETARD);
 
-            // se controla que hay que hacer en este estado
+            // se controla que hay que hacer en este estado y para el field seleccionado
             manage_states(estado, &izquierdaderecha, &retraso_leds, &selected_field);
 
             // Escribir la alarma por pantalla:
             sprintf(cadena, " alarma %02d:%02d", alarm_minutes / 60, alarm_minutes % 60);
             escribir(cadena, LINEA_ALARMA);
 
-            mostrar_indicador(uint8_t selected_field)
-
+            // Mostrar el indicador del campo selecionado
+            mostrar_indicador(selected_field);
         }
         
-        if (prev_seconds != time_seconds) {
+        if (prev_seconds != time_seconds) { // ha pasado un segundo
             // Escribir la hora por pantalla
             sprintf(cadena, " hora %02d:%02d:%02d", time_seconds / 3600, (time_seconds % 3600) / 60, time_seconds % 60);
             escribir(cadena, LINEA_HORA);
 
-            // Riiiing
-            if ((uint16_t)(time_seconds/60) == alarm_minutes) {
+            // Salta la alarma
+            if ((uint16_t)(time_seconds/60) == alarm_minutes) { 
                 sprintf(cadena, "Riiing");
                 escribir(cadena, LINEA_ALARMA_MSG);
             } else {
+                // la alarma "suena" hasta que pasa el minuto
                 borrar(LINEA_ALARMA_MSG);
             }
 
             prev_seconds = time_seconds;
         }
 
-        // contar si ha pasado suficiente tiempo
+        // contar si ha pasado el restraso de los leds.
         if (retraso_leds <= ms_elapsed)
         {
             ms_elapsed = 0; // se resetea el contador
@@ -689,6 +689,10 @@ void PORT5_IRQHandler(void)
     P5IE |= 0x32;   //interrupciones Joystick y S1 en port 5 reactivadas
 }
 
+/**
+ * Handler del timer que se activa cada ms.
+ * Este timer se usará para el delay de los leds
+ **/
 void TA0_0_IRQHandler(void) {
     TA0CCTL0 &= ~CCIE; // Desactivamos interrupciones
 
@@ -698,6 +702,10 @@ void TA0_0_IRQHandler(void) {
     TA0CCTL0 |=  CCIE;  // Reactivamos interrupciones
 }
 
+/**
+ * Handler del timer que se activa cada segundo.
+ * Este timer se usará para el reloj y la hora
+ **/
 void TA1_0_IRQHandler(void) {
     TA1CCTL0 &= ~CCIE; // Desactivamos interrupciones
 
