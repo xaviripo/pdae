@@ -5,26 +5,26 @@
 
 // DEFINES
 
-#define LINEA_PAE 1
-#define LINEA_ESTADO 2
-#define LINEA_RETARD 3
-#define LINEA_HORA 5
-#define LINEA_HORA_SELEC 6
-#define LINEA_ALARMA 7
-#define LINEA_ALARMA_SELEC 8
-#define LINEA_ALARMA_MSG 9
+// Número de líneas para el texto
+#define LINEA_PAE           1
+#define LINEA_ESTADO        2
+#define LINEA_RETARD        3
+#define LINEA_HORA          5
+#define LINEA_HORA_SELEC    6
+#define LINEA_ALARMA        7
+#define LINEA_ALARMA_SELEC  8
+#define LINEA_ALARMA_MSG    9
 
-
-#define S1 1
-#define S2 2
-#define LEFT 3
-#define RIGHT 4
-#define UP 5
-#define DOWN 6
-#define CENTER 7
+// Estados de la máquina de estados de los inputs
+#define S1      1
+#define S2      2
+#define LEFT    3
+#define RIGHT   4
+#define UP      5
+#define DOWN    6
+#define CENTER  7
 
 // typedefs
-
 typedef uint8_t bool;
 typedef uint8_t Estado;
 
@@ -108,7 +108,7 @@ void inc_minutes_alarm(uint16_t *time) {
 }
 
 /**
- * Incrementa les hores d'un punter (HH'MM')
+ * Incrementa les hores d'un punter ('HH'MM)
  */
 void inc_hours_alarm(uint16_t *time) {
     uint32_t hrs = (*time/60)%60;
@@ -130,7 +130,7 @@ void dec_minutes_alarm(uint16_t *time) {
 }
 
 /**
- * Incrementa les hores d'un punter (HH'MM')
+ * Incrementa les hores d'un punter ('HH'MM)
  */
 void dec_hours_alarm(uint16_t *time) {
     uint32_t hrs = (*time/60)%60;

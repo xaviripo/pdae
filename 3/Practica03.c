@@ -1,9 +1,6 @@
 /******************************
- *
- * Practica_02_PAE Programaciï¿½ de Ports
- * i prï¿½ctica de les instruccions de control de flux:
- * "do ... while", "switch ... case", "if" i "for"
- * UB, 02/2017.
+ * PAE
+ * PrÃ¡ctica 3: interrupciones y timers
  *****************************/
 
 #include <msp432p401r.h>
@@ -12,23 +9,29 @@
 #include "lib_PAE2.h" //Libreria grafica + configuracion reloj MSP432
 #include "utils.h"
 
+// Texto
 char saludo[16] = " PRACTICA 2 PAE"; //max 15 caracteres visibles
 char cadena[16]; //Una linea entera con 15 caracteres visibles + uno oculto de terminacion de cadena (codigo ASCII 0)
 char borrado[] = "               "; //una linea entera de 15 espacios en blanco
-uint8_t linea = 1;
+
+// MÃ¡quina de estados de los inputs
 Estado estado = 0;
 Estado estado_anterior = 8;
-uint32_t retraso = 500000;
-uint16_t ms_elapsed = 0;
-uint32_t time_seconds = 0; // 0-86399
-bool time_running = 1; // Bool que indica si el reloj está pausado o no
-uint16_t alarm_minutes = 0; // 0-1439
 
-// control leds P7
+// LEDs
+uint16_t ms_elapsed = 0; // Cuenta los ms que han pasado desde el Ãºltimo cambio de un LED al siguiente
 
-const uint32_t INC_RETRASO = 10;
-const uint32_t MAX_RETRASO = 5000;
-const uint32_t MIN_RETRASO = 10;
+// Reloj
+uint32_t time_seconds = 0; // Segundos desde las 00:00: El rango es [0, 86399]
+bool time_running = 1; // Bool que indica si el reloj estï¿½ pausado o no
+
+// Alarma
+uint16_t alarm_minutes = 0; // Minuto en el que sonarÃ¡ la alarma. El rango es [0, 1439]
+
+// Control LEDs P7
+const uint32_t INC_RETRASO = 10; // Incremento/decremento en ms del tiempo entre cambio de LEDs al pulsar up/down
+const uint32_t MAX_RETRASO = 5000; // Tiempo mÃ¡ximo en ms entre cambio de LEDs
+const uint32_t MIN_RETRASO = 10; // Tiempo mÃ­nimo en ms entre cambio de LEDs
 
 /**************************************************************************
  * INICIALIZACIï¿½N DEL CONTROLADOR DE INTERRUPCIONES (NVIC).
@@ -218,7 +221,7 @@ void init_timer(void) {
     TA0CCTL0 =
             CCIE; // activar int clock
 
-    // Seteamos la constante de tiempo máximo del contador
+    // Seteamos la constante de tiempo mï¿½ximo del contador
     // Lo ponemos a 3000 ya que f/1000/8 = 24*10^6/1000/8 = 3000
     TA0CCR0 = 3000;
 
@@ -233,7 +236,7 @@ void init_timer(void) {
     TA1CCTL0 =
             CCIE; // activar int clock
 
-    // Seteamos la constante de tiempo máximo del contador
+    // Seteamos la constante de tiempo mï¿½ximo del contador
     // Lo ponemos a 4096 ya que f/8 = 2^15/8 = 4096
     TA1CCR0 = 4096;
 }
@@ -394,7 +397,7 @@ void manage_states(Estado estado, bool *izquierdaderecha, uint16_t *retraso_leds
         retraso_temp = *retraso_leds + INC_RETRASO;
         *retraso_leds =
                 (retraso_temp < *retraso_leds) || // Controlamos el overflow
-                (retraso_temp > MAX_RETRASO) ? // Controlamos el valor mínimo permitido
+                (retraso_temp > MAX_RETRASO) ? // Controlamos el valor mï¿½nimo permitido
                         MAX_RETRASO : retraso_temp;
         break;
     case DOWN: // Down
@@ -436,7 +439,7 @@ void manage_states(Estado estado, bool *izquierdaderecha, uint16_t *retraso_leds
         retraso_temp = *retraso_leds - INC_RETRASO;
         *retraso_leds =
                 (retraso_temp > *retraso_leds) || // Controlamos el underflow
-                (retraso_temp < MIN_RETRASO) ? // Controlamos el valor mínimo permitido
+                (retraso_temp < MIN_RETRASO) ? // Controlamos el valor mï¿½nimo permitido
                         MIN_RETRASO : retraso_temp;
         break;
     case CENTER: // Center
@@ -691,7 +694,7 @@ void PORT5_IRQHandler(void)
 
 /**
  * Handler del timer que se activa cada ms.
- * Este timer se usará para el delay de los leds
+ * Este timer se usarï¿½ para el delay de los leds
  **/
 void TA0_0_IRQHandler(void) {
     TA0CCTL0 &= ~CCIE; // Desactivamos interrupciones
@@ -704,13 +707,13 @@ void TA0_0_IRQHandler(void) {
 
 /**
  * Handler del timer que se activa cada segundo.
- * Este timer se usará para el reloj y la hora
+ * Este timer se usarï¿½ para el reloj y la hora
  **/
 void TA1_0_IRQHandler(void) {
     TA1CCTL0 &= ~CCIE; // Desactivamos interrupciones
 
     time_seconds++; // Ha pasado 1s
-    time_seconds %= 86400; // Un día = 86400s
+    time_seconds %= 86400; // Un dï¿½a = 86400s
 
     TA1CCTL0 &= ~CCIFG; // Limpiar flag
     TA1CCTL0 |=  CCIE;  // Reactivamos interrupciones
