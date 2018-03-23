@@ -69,6 +69,7 @@ void inc_hours(uint32_t *time) {
 void dec_seconds(uint32_t *time) {
     uint32_t secs = *time%60;
     *time -= secs;
+    // No podemos hacer -- directamente pq es un int sin signo y haría underflow
     secs = secs == 0 ? 59 : secs-1;
     secs %= 60;
     *time += secs;
@@ -80,6 +81,7 @@ void dec_seconds(uint32_t *time) {
 void dec_minutes(uint32_t *time) {
     uint32_t mins = (*time/60)%60;
     *time -= mins*60;
+    // No podemos hacer -- directamente pq es un int sin signo y haría underflow
     mins = mins == 0 ? 59 : mins-1;
     mins %= 60;
     *time += mins*60;
@@ -91,6 +93,7 @@ void dec_minutes(uint32_t *time) {
 void dec_hours(uint32_t *time) {
     uint32_t hrs = (*time/3600)%24;
     *time -= hrs*3600;
+    // No podemos hacer -- directamente pq es un int sin signo y haría underflow
     hrs = hrs == 0 ? 23 : hrs-1;
     hrs %= 24;
     *time += hrs*3600;
@@ -114,7 +117,7 @@ void inc_hours_alarm(uint16_t *time) {
     uint32_t hrs = (*time/60)%60;
     *time -= hrs*60;
     hrs++;
-    hrs %= 60;
+    hrs %= 24;
     *time += hrs*60;
 }
 
@@ -124,7 +127,8 @@ void inc_hours_alarm(uint16_t *time) {
 void dec_minutes_alarm(uint16_t *time) {
     uint16_t mins = *time%60;
     *time -= mins;
-    mins++;
+    // No podemos hacer -- directamente pq es un int sin signo y haría underflow
+    mins = mins == 0 ? 59 : mins-1;
     mins %= 60;
     *time += mins;
 }
@@ -135,8 +139,9 @@ void dec_minutes_alarm(uint16_t *time) {
 void dec_hours_alarm(uint16_t *time) {
     uint32_t hrs = (*time/60)%60;
     *time -= hrs*60;
-    hrs++;
-    hrs %= 60;
+    // No podemos hacer -- directamente pq es un int sin signo y haría underflow
+    hrs = hrs == 0 ? 23 : hrs-1;
+    hrs %= 24;
     *time += hrs*60;
 }
 
