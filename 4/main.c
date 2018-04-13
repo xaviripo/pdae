@@ -6,8 +6,9 @@
 #define TXD2_READY (UCA2IFG & UCTXIFG)
 
 #define MAX_PARAMETER_LENGTH 16
-
-#define TIMEOUT TIMEOUT
+#define READ_DATA 0x02
+#define WRITE_DATA 0x03
+#define TIMEOUT 5000
 
 typedef uint8_t bool;
 typedef uint16_t time_t;
@@ -26,7 +27,8 @@ uint8_t byte_received_g = 0;
 
 typedef struct RxPacket {
     int8_t status[MAX_PARAMETER_LENGTH];
-    int8_t timeout;
+    bool timeout;
+    bool checksum_correct;
 } RxPacket;
 
 /**
@@ -60,9 +62,8 @@ void init_uart(void)
     P3DIR |= BIT0; //Port P3.0 com sortida (Data Direction selector Tx/Rx)
     P3OUT &= ~BIT0; //Inicialitzem Sentit Dades a 0 (Rx)
     UCA2CTLW0 &= ~UCSWRST; //Reactivem la línia de comunicacions sèrie
-    // UCA2IE |= UCRXIE; //Això només s’ha d’activar quan tinguem la rutina de recepció
+    UCA2IE |= UCRXIE; //Això només s’ha d’activar quan tinguem la rutina de recepció
 
-    UCA2IE = UCRXIE; // TODO comprobar sie sta bien
 }
 
 void init_timers(void) {
@@ -114,7 +115,6 @@ void tx_byte_uac2(uint8_t data)
     UCA2TXBUF = data;
 }
 
-
 void set_timer_interrupt(bool enable)
 {
     if (enable) {
@@ -137,12 +137,29 @@ bool has_received_byte(void) {
     return has_byte_received_g;
 }
 
+uint8_t get_read_byte(void) {
+    // Reseteamos el flag de alerta de byte
+    has_byte_received_g = 0;
+    // Devolvemos el byte recibido
+    return UCA2RXBUF;
+}
+
 
 //TxPacket() 3 paràmetres: ID del Dynamixel, Mida dels paràmetres, Instruction byte. torna la mida del "Return packet"
 uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t instruction, uint8_t parameters[16])
 {
+
     uint8_t i, checksum, packet_length;
     uint8_t tx_buffer[32];
+
+    // IMPUESTO POR LOS PROFESORES: prohibido escribir en los registros 0x00, 0x01, ..., 0x05
+    // Check initial writing position is >= 0x06
+    // also check that initial position + nr of bytes we write isn't > than last registrer, in case it wraps around
+    if (instruction != READ_DATA && parameters[0] < 0x06 && parameters[0]+parameter_length-2 <= 0x31) {
+        return -1;
+    }
+
+    // Check we don't try to write
 
     set_direction_tx(); //El pin P3.0 (DIRECTION_PORT) el posem a 1 (Transmetre)
 
@@ -180,11 +197,11 @@ uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t inst
 }
 
 
-RxPacket rx_status(void)
-{
+RxPacket rx_status(void) {
+
     RxPacket response;
     uint8_t i, packet_length, checksum;
-    time_t timeout = 0;
+    bool timeout = 0;
     bool received_byte;
 
     set_direction_rx(); //Ponemos la linea half duplex en Rx
@@ -213,7 +230,7 @@ RxPacket rx_status(void)
 
         packet_length = response.status[3];
 
-        for(i = 4; i < packet_length; i++) //packet_length; i++)
+        for(i = 4; i < packet_length + 4; i++) //packet_length; i++)
         {
             reset_time();
             received_byte = 0;
@@ -227,7 +244,20 @@ RxPacket rx_status(void)
             if (timeout) break;
             //Si no, es que todo ha ido bien, y leemos un dato:
             response.status[i] = get_read_byte(); //Get_Byte_Leido_UART();
-        }//fin del for
+        }
+
+        // Comprobar checksum sea correcto
+        // Atención! A pesar de que la documentación pone que hay que sumar "instruction",
+        // lo que hay que sumar es "error"
+        checksum = 0;
+        for (i = 2; i < packet_length + 3; i++) {
+            checksum += response.status[i];
+        }
+
+        checksum = ~checksum;
+
+        response.checksum_correct = (checksum == response.status[packet_length+3]);
+
     }
     else
     {
@@ -238,6 +268,41 @@ RxPacket rx_status(void)
 
 }
 
+// wheel_id {3, 4}
+// direction {0, 1}
+// speed [0, 1022]
+bool rotate_wheel(uint8_t wheel_id, bool direction, uint16_t speed) {
+
+    // Dynamixel uses 0 for unlimited power
+    // 1 stopped
+    // 2-1023 linear speed
+    speed = speed - 1;
+
+    // CW and CCW angle limits to 0 so no max angle
+    uint8_t parameters[5] = {0x06, 0, 0, 0, 0};
+
+    // Do the thing(TM)
+    bool correct = (tx_instruction(wheel_id, 5, WRITE_DATA, parameters) != -1);
+
+    RxPacket response = rx_status();
+
+    if (response.timeout || !response.checksum_correct) {
+        correct = 0;
+    }
+
+    return correct;
+
+}
+
+// direction: true -> robot-forward, false -> robot-backward
+bool rotate_left(bool direction, uint16_t speed) {
+    return rotate_wheel(3, direction, speed);
+}
+
+// direction: true -> robot-forward, false -> robot-backward
+bool rotate_right(bool direction, uint16_t speed) {
+    return rotate_wheel(2, ~direction, speed);
+}
 
 
 
@@ -259,6 +324,7 @@ void main(void)
  * HANDLERS
  */
 
+// Clock
 void TA0_0_IRQHandler(void) {
     set_timer_interrupt(0); // Desactivamos interrupciones
 
@@ -268,8 +334,7 @@ void TA0_0_IRQHandler(void) {
     set_timer_interrupt(1);  // Reactivamos interrupciones
 }
 
-// TODO no sabemos si este es el handler correcto para las interrupciones de recepcion de datos
+// UART
 void EUSCIA2_IRQHandler(void) {
-    //
-}
+    has_byte_received_g = 1;
 }
