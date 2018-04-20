@@ -8,7 +8,7 @@
 #define MAX_PARAMETER_LENGTH 16
 #define READ_DATA 0x02
 #define WRITE_DATA 0x03
-#define TIMEOUT 5000
+#define TIMEOUT 1000
 
 typedef uint8_t bool;
 typedef uint16_t time_t;
@@ -80,9 +80,9 @@ void init_timers(void) {
         CCIE; // activar int clock
 
     // Seteamos la constante de tiempo máximo del contador
-    // Queremos que la unidad básica sea 10^-5 segundos (como se pide en el código incluido en la práctica)
-    // Lo ponemos a 30 ya que f/100000/8 = 24*10^6/100000/8 = 30
-    TA0CCR0 = 30;
+    // Queremos que la unidad básica sea 10^-3 segundos
+    // Lo ponemos a 30 ya que f/1000/8 = 24*10^6/1000/8 = 3000
+    TA0CCR0 = 3000;
 
 }
 
@@ -91,6 +91,9 @@ void init_interrupts(void)
     // Timer para el timeout en RX
     NVIC->ICPR[0] |= BIT8; // Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
     NVIC->ISER[0] |= BIT8; // y habilito las interrupciones del puerto
+
+    NVIC->ICPR[0] |= 1<<0x12;
+    NVIC->ISER[0] |= 1<<0x12;
 
     __enable_interrupt(); //Habilitamos las interrupciones a nivel global del micro.
 }
@@ -130,7 +133,7 @@ void reset_time(void) {
 
 bool has_passed(time_t time)
 {
-    return time >= time_g;
+    return time < time_g;
 }
 
 bool has_received_byte(void) {
@@ -141,11 +144,12 @@ uint8_t get_read_byte(void) {
     // Reseteamos el flag de alerta de byte
     has_byte_received_g = 0;
     // Devolvemos el byte recibido
-    return UCA2RXBUF;
+    return byte_received_g;
 }
 
 
 //TxPacket() 3 paràmetres: ID del Dynamixel, Mida dels paràmetres, Instruction byte. torna la mida del "Return packet"
+// Retorna 0 si hi ha error
 uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t instruction, uint8_t parameters[16])
 {
 
@@ -156,7 +160,7 @@ uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t inst
     // Check initial writing position is >= 0x06
     // also check that initial position + nr of bytes we write isn't > than last registrer, in case it wraps around
     if (instruction != READ_DATA && parameters[0] < 0x06 && parameters[0]+parameter_length-2 <= 0x31) {
-        return -1;
+        return 0;
     }
 
     // Check we don't try to write
@@ -188,8 +192,11 @@ uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t inst
     {
         tx_byte_uac2(tx_buffer[i]);
     }
-    while(UCA2STATW & UCBUSY); //Espera fins que s’ha transmès el últim byte
 
+    int dummy=1;
+    while(UCA2STATW & UCBUSY){ //Espera fins que s’ha transmès el últim byte
+        dummy++;
+    }
     set_direction_rx(); //Posem la línia de dades en Rx perquè el mòdul Dynamixel envia resposta
 
     return packet_length;
@@ -214,7 +221,7 @@ RxPacket rx_status(void) {
         while (!received_byte) // Se_ha_recibido_Byte())
         {
             received_byte = has_received_byte();
-            timeout = has_passed(TIMEOUT); // tiempo en decenas de microsegundos
+            timeout = has_passed(TIMEOUT); // tiempo en ms
             if (timeout) break; //sale del while
         }
         //sale del for si ha habido Timeout
@@ -254,9 +261,7 @@ RxPacket rx_status(void) {
             checksum += response.status[i];
         }
 
-        checksum = ~checksum;
-
-        response.checksum_correct = (checksum == response.status[packet_length+3]);
+        response.checksum_correct = (checksum + response.status[packet_length+3] + 1) == 0;
 
     }
     else
@@ -268,26 +273,76 @@ RxPacket rx_status(void) {
 
 }
 
-// wheel_id {3, 4}
+/*
+ * Returns true if succesful
+ */
+bool set_led(bool on) {
+
+    uint8_t parameters[2] = {0x19, (on?1:0)};
+    bool correct;
+    RxPacket response;
+
+    correct = (tx_instruction(2, 2, WRITE_DATA, parameters) != 0);
+
+    response = rx_status();
+
+    if (response.timeout || !response.checksum_correct) {
+        return 0;
+    }
+
+    return 1;
+
+}
+
+// wheel_id {2, 3}
 // direction {0, 1}
 // speed [0, 1022]
 bool rotate_wheel(uint8_t wheel_id, bool direction, uint16_t speed) {
 
+    if (speed > 1022) {
+        return 0;
+    }
+
     // Dynamixel uses 0 for unlimited power
     // 1 stopped
     // 2-1023 linear speed
-    speed = speed - 1;
+    speed ++;
+
+    uint8_t parameters[5];
+    bool correct;
+    RxPacket response;
+
+    //////////////////////////////////////////////////////////////////////////////
 
     // CW and CCW angle limits to 0 so no max angle
-    uint8_t parameters[5] = {0x06, 0, 0, 0, 0};
+    parameters[0] = 0x06;
+    parameters[1] = 0;
+    parameters[2] = 0;
+    parameters[3] = 0;
+    parameters[4] = 0;
 
     // Do the thing(TM)
-    bool correct = (tx_instruction(wheel_id, 5, WRITE_DATA, parameters) != -1);
+    correct = (tx_instruction(wheel_id, 5, WRITE_DATA, parameters) != 0);
 
-    RxPacket response = rx_status();
+    response = rx_status();
 
     if (response.timeout || !response.checksum_correct) {
-        correct = 0;
+        return 0;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    parameters[0] = 0x20;
+    parameters[1] = speed & 0xff; // Cogemos los 8 bits inferiores
+    parameters[2] = (speed >> 8); // Cogemos los 8 bits superiores
+    parameters[2] |= (direction ? 1 : 0) * BIT2; // Cambiamos el bit 10 a 1 o 0 según dirección
+
+    correct = (tx_instruction(wheel_id, 3, WRITE_DATA, parameters) != 0);
+
+    response = rx_status();
+
+    if (response.timeout || !response.checksum_correct) {
+        return 0;
     }
 
     return correct;
@@ -296,13 +351,32 @@ bool rotate_wheel(uint8_t wheel_id, bool direction, uint16_t speed) {
 
 // direction: true -> robot-forward, false -> robot-backward
 bool rotate_left(bool direction, uint16_t speed) {
-    return rotate_wheel(3, direction, speed);
+    return rotate_wheel(0x03, direction, speed);
 }
 
 // direction: true -> robot-forward, false -> robot-backward
 bool rotate_right(bool direction, uint16_t speed) {
-    return rotate_wheel(2, ~direction, speed);
+    return rotate_wheel(0x02, ~direction, speed);
 }
+
+uint8_t has_obstacle(void) {
+
+    uint8_t parameters[1] = {0x20};
+    bool correct;
+    RxPacket response;
+
+    correct = (tx_instruction(100, 1, READ_DATA, parameters) != 0);
+
+    response = rx_status();
+
+    if (response.timeout || !response.checksum_correct) {
+        return -1;
+    }
+
+    return response.status[5];
+
+}
+
 
 
 
@@ -312,11 +386,21 @@ bool rotate_right(bool direction, uint16_t speed) {
 
 void main(void)
 {
+
+    uint8_t ho;
     WDTCTL = WDTPW + WDTHOLD; // Paramos el watchdog timer
 	init_ucs_24MHz(); // Inicalizar UCS
 	init_timers();
+	init_uart();
 	init_interrupts();
-
+	while (1) {
+	    ho = has_obstacle();
+	    if (ho) {
+	        set_led(1);
+	    } else {
+	        set_led(0);
+	    }
+	}
 }
 
 
@@ -336,5 +420,8 @@ void TA0_0_IRQHandler(void) {
 
 // UART
 void EUSCIA2_IRQHandler(void) {
+    UCA2IE &= ~UCRXIE;
+    byte_received_g = UCA2RXBUF;
     has_byte_received_g = 1;
+    UCA2IE |= UCRXIE;
 }
