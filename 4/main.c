@@ -10,6 +10,13 @@
 #define WRITE_DATA 0x03
 #define TIMEOUT 1000
 
+#define OBSTACLE_LEFT 0x01
+#define OBSTACLE_CENTER 0x02
+#define OBSTACLE_RIGHT 0x04
+
+#define RIGHT 1
+#define LEFT 0
+
 typedef uint8_t bool;
 typedef uint16_t time_t;
 
@@ -30,6 +37,8 @@ typedef struct RxPacket {
     bool timeout;
     bool checksum_correct;
 } RxPacket;
+
+RxPacket response_g;
 
 /**
  * INITS
@@ -150,7 +159,7 @@ uint8_t get_read_byte(void) {
 
 //TxPacket() 3 paràmetres: ID del Dynamixel, Mida dels paràmetres, Instruction byte. torna la mida del "Return packet"
 // Retorna 0 si hi ha error
-uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t instruction, uint8_t parameters[16])
+uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t instruction, uint8_t parameters[MAX_PARAMETER_LENGTH])
 {
 
     uint8_t i, checksum, packet_length;
@@ -193,10 +202,8 @@ uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t inst
         tx_byte_uac2(tx_buffer[i]);
     }
 
-    int dummy=1;
-    while(UCA2STATW & UCBUSY){ //Espera fins que s’ha transmès el últim byte
-        dummy++;
-    }
+    while(UCA2STATW & UCBUSY); //Espera fins que s’ha transmès el últim byte
+
     set_direction_rx(); //Posem la línia de dades en Rx perquè el mòdul Dynamixel envia resposta
 
     return packet_length;
@@ -204,15 +211,15 @@ uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t inst
 }
 
 
-RxPacket rx_status(void) {
-
-    RxPacket response;
+void rx_status(void) {
     uint8_t i, packet_length, checksum;
     bool timeout = 0;
     bool received_byte;
 
     set_direction_rx(); //Ponemos la linea half duplex en Rx
     set_timer_interrupt(1);
+
+    response_g.status[3] = 0x00;
 
     for(i = 0; i < 4; i++)
     {
@@ -227,15 +234,15 @@ RxPacket rx_status(void) {
         //sale del for si ha habido Timeout
         if (timeout) break;
         //Si no, es que todo ha ido bien, y leemos un dato:
-        response.status[i] = get_read_byte(); //Get_Byte_Leido_UART();
+        response_g.status[i] = get_read_byte(); //Get_Byte_Leido_UART();
     }//fin del for
 
     // Continua llegint la resta de bytes del Status Packet
     if (!timeout)
     {
-        response.timeout = 0;
+        response_g.timeout = 0;
 
-        packet_length = response.status[3];
+        packet_length = response_g.status[3];
 
         for(i = 4; i < packet_length + 4; i++) //packet_length; i++)
         {
@@ -250,7 +257,7 @@ RxPacket rx_status(void) {
             //sale del for si ha habido Timeout
             if (timeout) break;
             //Si no, es que todo ha ido bien, y leemos un dato:
-            response.status[i] = get_read_byte(); //Get_Byte_Leido_UART();
+            response_g.status[i] = get_read_byte(); //Get_Byte_Leido_UART();
         }
 
         // Comprobar checksum sea correcto
@@ -258,39 +265,61 @@ RxPacket rx_status(void) {
         // lo que hay que sumar es "error"
         checksum = 0;
         for (i = 2; i < packet_length + 3; i++) {
-            checksum += response.status[i];
+            checksum += response_g.status[i];
         }
 
-        response.checksum_correct = (checksum + response.status[packet_length+3] + 1) == 0;
+        response_g.checksum_correct = (checksum + response_g.status[packet_length+3] + 1) == 0;
 
     }
     else
     {
-        response.timeout = 1;
+        response_g.timeout = 1;
     }
-
-    return response;
-
 }
 
-/*
- * Returns true if succesful
- */
-bool set_led(bool on) {
+bool write(uint8_t id, uint8_t parameter_length, uint8_t parameters[MAX_PARAMETER_LENGTH]) {
 
-    uint8_t parameters[2] = {0x19, (on?1:0)};
     bool correct;
-    RxPacket response;
 
-    correct = (tx_instruction(2, 2, WRITE_DATA, parameters) != 0);
+    correct = (tx_instruction(id, parameter_length, WRITE_DATA, parameters) != 0);
 
-    response = rx_status();
+    rx_status();
 
-    if (response.timeout || !response.checksum_correct) {
+    if (response_g.timeout || !response_g.checksum_correct) {
         return 0;
     }
 
-    return 1;
+    return correct;
+
+}
+
+bool read(uint8_t id, uint8_t parameter_length, uint8_t parameters[MAX_PARAMETER_LENGTH]) {
+
+    bool correct;
+
+    correct = (tx_instruction(id, parameter_length, READ_DATA, parameters) != 0);
+
+    rx_status();
+
+    if (response_g.timeout || !response_g.checksum_correct) {
+        return 0;
+    }
+
+    return correct;
+}
+
+/*
+ * Returns true if successful
+ * side true <-> right <-> 2
+ *      false <-> left <-> 3
+ */
+bool write_led(bool side, bool on) {
+
+    uint8_t parameter_length = 2;
+    uint8_t parameters[] = {0x19, (on?1:0)};
+    uint8_t id = side ? 2 : 3;
+
+    return write(id, parameter_length, parameters);
 
 }
 
@@ -307,26 +336,20 @@ bool rotate_wheel(uint8_t wheel_id, bool direction, uint16_t speed) {
     // 1 stopped
     // 2-1023 linear speed
     speed ++;
-
     uint8_t parameters[5];
-    bool correct;
-    RxPacket response;
 
     //////////////////////////////////////////////////////////////////////////////
 
     // CW and CCW angle limits to 0 so no max angle
+
+
     parameters[0] = 0x06;
     parameters[1] = 0;
     parameters[2] = 0;
     parameters[3] = 0;
     parameters[4] = 0;
 
-    // Do the thing(TM)
-    correct = (tx_instruction(wheel_id, 5, WRITE_DATA, parameters) != 0);
-
-    response = rx_status();
-
-    if (response.timeout || !response.checksum_correct) {
+    if(!write(wheel_id, 5, parameters)) {
         return 0;
     }
 
@@ -337,44 +360,47 @@ bool rotate_wheel(uint8_t wheel_id, bool direction, uint16_t speed) {
     parameters[2] = (speed >> 8); // Cogemos los 8 bits superiores
     parameters[2] |= (direction ? 1 : 0) * BIT2; // Cambiamos el bit 10 a 1 o 0 según dirección
 
-    correct = (tx_instruction(wheel_id, 3, WRITE_DATA, parameters) != 0);
-
-    response = rx_status();
-
-    if (response.timeout || !response.checksum_correct) {
+    if(!write(wheel_id, 3, parameters)) {
         return 0;
     }
 
-    return correct;
+    return 1;
 
 }
 
 // direction: true -> robot-forward, false -> robot-backward
 bool rotate_left(bool direction, uint16_t speed) {
-    return rotate_wheel(0x03, direction, speed);
+    return rotate_wheel(0x03, !direction, speed);
 }
 
 // direction: true -> robot-forward, false -> robot-backward
 bool rotate_right(bool direction, uint16_t speed) {
-    return rotate_wheel(0x02, ~direction, speed);
+    return rotate_wheel(0x02, direction, speed);
 }
 
-uint8_t has_obstacle(void) {
+uint8_t read_obstacle(void) {
 
-    uint8_t parameters[1] = {0x20};
-    bool correct;
-    RxPacket response;
+    uint8_t parameter_length = 2;
+    uint8_t parameters[] = {0x20, 1};
 
-    correct = (tx_instruction(100, 1, READ_DATA, parameters) != 0);
-
-    response = rx_status();
-
-    if (response.timeout || !response.checksum_correct) {
+    // Ha ido mal
+    if(!read(100, parameter_length, parameters)) {
         return -1;
     }
 
-    return response.status[5];
+    return response_g.status[5];
 
+}
+
+void set_obstacle_threshold(uint8_t threshold) {
+    uint8_t parameters[] = {0x14, threshold};
+    write(100, 2, parameters);
+}
+
+uint8_t read_claps(void) {
+    uint8_t parameters[] = {0x25, 1};
+    read(100, 2, parameters);
+    return response_g.status[5];
 }
 
 
@@ -393,12 +419,45 @@ void main(void)
 	init_timers();
 	init_uart();
 	init_interrupts();
-	while (1) {
-	    ho = has_obstacle();
-	    if (ho) {
-	        set_led(1);
-	    } else {
-	        set_led(0);
+
+	// Settings
+	set_obstacle_threshold(200);
+
+	// Initial actions
+	write_led(LEFT, 0);
+	write_led(RIGHT, 0);
+
+    rotate_left(1, 300);
+    rotate_right(1, 300);
+
+    uint8_t claps = 0;
+	for(;;) {
+
+	    if(read_claps() > 0) {
+	        claps++;
+	        write_led(claps%2==0 ? LEFT : RIGHT, 1);
+            write_led(claps%2==0 ? RIGHT : LEFT, 0);
+	    }
+
+	    ho = read_obstacle();
+
+	    switch (ho) {
+	    case 0:
+            rotate_left(1, 300);
+            rotate_right(1, 300);
+	        break;
+	    case OBSTACLE_LEFT:
+	        rotate_left(1, 300);
+	        rotate_right(0, 300);
+	        break;
+	    case OBSTACLE_RIGHT:
+	        rotate_left(0, 300);
+	        rotate_right(1, 300);
+	        break;
+	    case OBSTACLE_CENTER:
+	    default:
+            rotate_left(1, 0);
+            rotate_right(1, 0);
 	    }
 	}
 }
