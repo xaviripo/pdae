@@ -1,3 +1,6 @@
+# .settings (?)
+.settings/
+
 # http://processors.wiki.ti.com/index.php/Source_control_with_CCS
 Debug/
 Release/

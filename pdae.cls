@@ -82,7 +82,7 @@
 	\centering
   {\scshape\LARGE Universitat de Barcelona \par}
 	\vspace{2cm}
-	{\scshape\Large Pràctica 3:\par}
+	{\scshape\Large Pràctica 4:\par}
 	\vspace{1cm}
 	{\huge\bfseries \thetitle \par}
 
