@@ -1,36 +1,58 @@
+/******************************************************************************/
+// INCLUDES
+/******************************************************************************/
+
 #include <stdio.h>
 #include <stdint.h>
 #include "msp.h"
 #include "lib_PAE2.h"
 
+
+
+/******************************************************************************/
+// DEFINES
+/******************************************************************************/
+
+// Para comprobar si el buffer estÃ¡ ocupado
 #define TXD2_READY (UCA2IFG & UCTXIFG)
 
+// MÃ¡ximo nÃºmero de parÃ¡metros en TX
 #define MAX_PARAMETER_LENGTH 16
-#define READ_DATA 0x02
-#define WRITE_DATA 0x03
+
+// Tiempo de timeout al leer datos UART
 #define TIMEOUT 1000
 
+// Instrucciones que acepta el motor y los sensores
+#define READ_DATA 0x02
+#define WRITE_DATA 0x03
+
+// Usado para leer el output de los sensores
 #define OBSTACLE_LEFT 0x01
 #define OBSTACLE_CENTER 0x02
 #define OBSTACLE_RIGHT 0x04
 
-#define RIGHT 1
-#define LEFT 0
+
+
+/******************************************************************************/
+// TYPEDEFS
+/******************************************************************************/
+
+// Lado del robot, usado para identificar el motor;
+// se considera "delante" la direcciÃ³n FORWARD
+typedef enum {RIGHT, LEFT} side_t;
+
+// DirecciÃ³n en la que se puede mover el robot;
+// FORWARD es hacia donde apunta el sensor
+typedef enum {FORWARD, BACKWARD} direction_t;
 
 typedef uint8_t bool;
 typedef uint16_t time_t;
 
-/**
- * GLOBALS
- */
 
-time_t time_g = 0;
-bool has_byte_received_g = 0;
-uint8_t byte_received_g = 0;
 
-/**
- * STRUCTS
- */
+/******************************************************************************/
+// STRUCTS
+/******************************************************************************/
 
 typedef struct RxPacket {
     int8_t status[MAX_PARAMETER_LENGTH];
@@ -38,40 +60,58 @@ typedef struct RxPacket {
     bool checksum_correct;
 } RxPacket;
 
+
+
+/******************************************************************************/
+// GLOBALS
+/******************************************************************************/
+
+// Usado por el clock para contar el tiempo que ha pasado en ms.
+time_t time_g = 0;
+
+// Se ha recibido un byte por UART?
+bool has_byte_received_g = 0;
+
+// Byte que se ha recibido por UART
+uint8_t byte_received_g = 0;
+
+/* Respuesta recibida por UART del motor/sensor.
+ * Por alguna razÃ³n solo hemos conseguido recibir los datos correctamente
+ * usando una variable global. */
 RxPacket response_g;
 
-/**
- * INITS
- */
+
+
+/******************************************************************************/
+// INITS
+/******************************************************************************/
 
 void init_uart(void)
 {
     UCA2CTLW0 |= UCSWRST; //Fem un reset de la USCI, desactiva la USCI
-    UCA2CTLW0 |= UCSSEL__SMCLK; /**
-                                 * UCSYNC=0 mode asíncron
-                                 * UCMODEx=0 seleccionem mode UART
-                                 * UCSPB=0 nomes 1 stop bit
-                                 * UC7BIT=0 8 bits de dades
-                                 * UCMSB=0 bit de menys pes primer
-                                 * UCPAR=x ja que no es fa servir bit de paritat
-                                 * UCPEN=0 sense bit de paritat
-                                 * Triem SMCLK (16MHz) com a font del clock BRCLK
-                                 */
+    /* UCSYNC=0 mode asï¿½ncron
+     * UCMODEx=0 seleccionem mode UART
+     * UCSPB=0 nomes 1 stop bit
+     * UC7BIT=0 8 bits de dades
+     * UCMSB=0 bit de menys pes primer
+     * UCPAR=x ja que no es fa servir bit de paritat
+     * UCPEN=0 sense bit de paritat
+     * Triem SMCLK (16MHz) com a font del clock BRCLK */
+    UCA2CTLW0 |= UCSSEL__SMCLK;
     UCA2MCTLW = UCOS16; // Necessitem sobre-mostreig => bit 0 = UCOS16 = 1
-    UCA2BRW = 3; /**
-                  * Prescaler de BRCLK fixat a 3. Com SMCLK va a24MHz,
-                  * volem un baud rate de 500kb/s i fem sobre-mostreig de 16
-                  * el rellotge de la UART ha de ser de 8MHz (24MHz/3).
-                  */
+    /* Prescaler de BRCLK fixat a 3. Com SMCLK va a24MHz,
+     * volem un baud rate de 500kb/s i fem sobre-mostreig de 16
+     * el rellotge de la UART ha de ser de 8MHz (24MHz/3). */
+    UCA2BRW = 3;
     // Configurem els pins de la UART
-    P3SEL0 |= BIT2 | BIT3; //I/O funció: P3.3 = UART2TX, P3.2 = UART2RX
-    P3SEL1 &= ~ (BIT2 | BIT3); //Configurem pin de selecció del sentit de les dades Transmissió/Recepeció
+    P3SEL0 |= BIT2 | BIT3; //I/O funciï¿½: P3.3 = UART2TX, P3.2 = UART2RX
+    P3SEL1 &= ~ (BIT2 | BIT3); //Configurem pin de selecciï¿½ del sentit de les dades Transmissiï¿½/Recepeciï¿½
     P3SEL0 &= ~BIT0; //Port P3.0 com GPIO
     P3SEL1 &= ~BIT0;
     P3DIR |= BIT0; //Port P3.0 com sortida (Data Direction selector Tx/Rx)
     P3OUT &= ~BIT0; //Inicialitzem Sentit Dades a 0 (Rx)
-    UCA2CTLW0 &= ~UCSWRST; //Reactivem la línia de comunicacions sèrie
-    UCA2IE |= UCRXIE; //Això només s’ha d’activar quan tinguem la rutina de recepció
+    UCA2CTLW0 &= ~UCSWRST; //Reactivem la lï¿½nia de comunicacions sï¿½rie
+    UCA2IE |= UCRXIE; //Aixï¿½ nomï¿½s sï¿½ha dï¿½activar quan tinguem la rutina de recepciï¿½
 
 }
 
@@ -88,8 +128,8 @@ void init_timers(void) {
     TA0CCTL0 =
         CCIE; // activar int clock
 
-    // Seteamos la constante de tiempo máximo del contador
-    // Queremos que la unidad básica sea 10^-3 segundos
+    // Seteamos la constante de tiempo mï¿½ximo del contador
+    // Queremos que la unidad bï¿½sica sea 10^-3 segundos
     // Lo ponemos a 30 ya que f/1000/8 = 24*10^6/1000/8 = 3000
     TA0CCR0 = 3000;
 
@@ -107,26 +147,16 @@ void init_interrupts(void)
     __enable_interrupt(); //Habilitamos las interrupciones a nivel global del micro.
 }
 
+/******************************************************************************/
+// HELPERS para TX y RX
+/******************************************************************************/
+
+//////////////// Reloj
+
 /**
- * MÉTODOS
+ * Activa o desactiva la interrupciÃ³n del reloj
+ * @param enable true = activar; false = desactivar
  */
-
-void set_direction_rx(void)
-{
-    P3OUT &= ~BIT0;
-}
-
-void set_direction_tx(void)
-{
-    P3OUT |= BIT0;
-}
-
-void tx_byte_uac2(uint8_t data)
-{
-    while(!TXD2_READY); // Esperamos a que esté listo el buffer de transmisión
-    UCA2TXBUF = data;
-}
-
 void set_timer_interrupt(bool enable)
 {
     if (enable) {
@@ -136,19 +166,63 @@ void set_timer_interrupt(bool enable)
     }
 }
 
+/**
+ * Resetea el timer a 0
+ */
 void reset_time(void) {
     time_g = 0;
 }
 
+/**
+ * Â¿Han pasado time milisegundos desde que se ha reseteado el contador?
+ * @param time Tiempo en milisegundos que se quiere comprobar
+ * @return true = ha pasado el tiempo; false = aÃºn no ha pasado
+ */
 bool has_passed(time_t time)
 {
     return time < time_g;
 }
 
+
+//////////////// EnvÃ­o y recepciÃ³n de bytes por la UART
+
+/**
+ * Establece la direcciÃ³n de la lÃ­nea a RX
+ */
+void set_direction_rx(void)
+{
+    P3OUT &= ~BIT0;
+}
+
+/**
+ * Establece la direcciÃ³n de la lÃ­nea a TX
+ */
+void set_direction_tx(void)
+{
+    P3OUT |= BIT0;
+}
+
+/**
+ * EnvÃ­a byte por la UCA2
+ */
+void tx_byte_uac2(uint8_t data)
+{
+    while(!TXD2_READY); // Esperamos a que estï¿½ listo el buffer de transmisiï¿½n
+    UCA2TXBUF = data;
+}
+
+/**
+ * Â¿Se ha recibido algÃºn byte desde que se ha leÃ­do el Ãºltimo?
+ * @return true = se ha recibido byte; false = no se ha recibido
+ */
 bool has_received_byte(void) {
     return has_byte_received_g;
 }
 
+/**
+ * Lee el Ãºltimo byte recibidio y desactiva el flag de byte recbido.
+ * @return Byte que se ha recibido
+ */
 uint8_t get_read_byte(void) {
     // Reseteamos el flag de alerta de byte
     has_byte_received_g = 0;
@@ -157,8 +231,21 @@ uint8_t get_read_byte(void) {
 }
 
 
-//TxPacket() 3 paràmetres: ID del Dynamixel, Mida dels paràmetres, Instruction byte. torna la mida del "Return packet"
-// Retorna 0 si hi ha error
+
+/******************************************************************************/
+// TX y RX
+/******************************************************************************/
+
+/**
+ * EnvÃ­a un paquete de instrucciÃ³n a un mÃ³dulo vÃ­a UART
+ * @param module_id Id del mÃ³dulo al que le enviamos el paquete
+ * @param parameter_length NÃºmero de parÃ¡metros que contiene el paquete.
+ *                         Tiene que ser el nÃºmero de elementos en parameters.
+ * @param instruction InstrucciÃ³n que le enviamos al mÃ³dulo.
+ *                    Hay una constante definida para cada instrucciÃ³n vÃ¡lida
+ * @param parameters Array que contiene los parÃ¡metros a pasar.
+ * @return 0 = error; n (>0) = nÃºmero de bytes enviados
+ */
 uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t instruction, uint8_t parameters[MAX_PARAMETER_LENGTH])
 {
 
@@ -179,10 +266,10 @@ uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t inst
     // Rellenar el paquete de datos
     tx_buffer[0] = 0xff; //Primers 2 bytes que indiquen inici de trama FF, FF.
     tx_buffer[1] = 0xff;
-    tx_buffer[2] = module_id; //ID del mòdul al que volem enviar el missatge
+    tx_buffer[2] = module_id; //ID del mï¿½dul al que volem enviar el missatge
     tx_buffer[3] = parameter_length + 2; //Length(Parameter,Instruction,Checksum)
-    tx_buffer[4] = instruction; //Instrucció que enviem al Mòdul
-    for(i = 0; i < parameter_length; i++) //Comencem a generar la trama que hem d’enviar
+    tx_buffer[4] = instruction; //Instrucciï¿½ que enviem al Mï¿½dul
+    for(i = 0; i < parameter_length; i++) //Comencem a generar la trama que hem dï¿½enviar
     {
         tx_buffer[i+5] = parameters[i];
     }
@@ -190,27 +277,31 @@ uint8_t tx_instruction(uint8_t module_id, uint8_t parameter_length, uint8_t inst
     // Calcular checksum
     checksum = 0;
     packet_length = parameter_length+4+2;
-    for(i = 2; i < packet_length-1; i++) //Càlcul del checksum
+    for(i = 2; i < packet_length-1; i++) //Cï¿½lcul del checksum
     {
         checksum += tx_buffer[i];
     }
     tx_buffer[i] = ~checksum; //Escriu el Checksum (complement a 1)
 
     // Enviar los datos
-    for(i = 0; i < packet_length; i++) //Aquest bucle és el que envia la trama al Mòdul Robot
+    for(i = 0; i < packet_length; i++) //Aquest bucle ï¿½s el que envia la trama al Mï¿½dul Robot
     {
         tx_byte_uac2(tx_buffer[i]);
     }
 
-    while(UCA2STATW & UCBUSY); //Espera fins que s’ha transmès el últim byte
+    while(UCA2STATW & UCBUSY); //Espera fins que sï¿½ha transmï¿½s el ï¿½ltim byte
 
-    set_direction_rx(); //Posem la línia de dades en Rx perquè el mòdul Dynamixel envia resposta
+    set_direction_rx(); //Posem la lï¿½nia de dades en Rx perquï¿½ el mï¿½dul Dynamixel envia resposta
 
     return packet_length;
 
 }
 
-
+/**
+ * Recibe un paquete de status del Ãºltimo mÃ³dulo al que se le ha enviado algo
+ * La funciÃ³n no devuelve nada, almacena el resultado en la variable global
+ * response_g
+ */
 void rx_status(void) {
     uint8_t i, packet_length, checksum;
     bool timeout = 0;
@@ -261,7 +352,7 @@ void rx_status(void) {
         }
 
         // Comprobar checksum sea correcto
-        // Atención! A pesar de que la documentación pone que hay que sumar "instruction",
+        // Atenciï¿½n! A pesar de que la documentaciï¿½n pone que hay que sumar "instruction",
         // lo que hay que sumar es "error"
         checksum = 0;
         for (i = 2; i < packet_length + 3; i++) {
@@ -277,6 +368,21 @@ void rx_status(void) {
     }
 }
 
+
+
+/******************************************************************************/
+// READ y WRITE
+/******************************************************************************/
+
+/**
+ * Escribe datos en un mÃ³dulo y comprueba que se haga correctamente.
+ * La respuesta del mÃ³dulo se puede leer en response_g
+ * @param id Id del mÃ³dulo en el que escribimos los datos
+ * @param parameter_length NÃºmero de bytes a escribir.
+ *                         Tiene que ser el nÃºmero de elementos en parameters.
+ * @param parameters Array de bytes a escribir
+ * @return true = se ha escrito correctamente; false = ha habido algÃºn problema
+ */
 bool write(uint8_t id, uint8_t parameter_length, uint8_t parameters[MAX_PARAMETER_LENGTH]) {
 
     bool correct;
@@ -293,11 +399,20 @@ bool write(uint8_t id, uint8_t parameter_length, uint8_t parameters[MAX_PARAMETE
 
 }
 
-bool read(uint8_t id, uint8_t parameter_length, uint8_t parameters[MAX_PARAMETER_LENGTH]) {
+/**
+ * Lee datos de un mÃ³dulo y comprueba que se haga correctamente.
+ * La respuesta del mÃ³dulo se puede leer en response_g
+ * @param id Id del mÃ³dulo del que leeremos los datos
+ * @param initial_position PosiciÃ³n inicial a leer del mÃ³dulo
+ * @param amount NÃºmero de bytes a leer incluyendo el inicial
+ * @return true = se ha leÃ­do correctamente; false = ha habido algÃºn problema
+ */
+bool read(uint8_t id, uint8_t initial_position, uint8_t amount) {
 
     bool correct;
+    uint8_t parameters[] = {initial_position, amount};
 
-    correct = (tx_instruction(id, parameter_length, READ_DATA, parameters) != 0);
+    correct = (tx_instruction(id, 2, READ_DATA, parameters) != 0);
 
     rx_status();
 
@@ -308,10 +423,17 @@ bool read(uint8_t id, uint8_t parameter_length, uint8_t parameters[MAX_PARAMETER
     return correct;
 }
 
+
+
+/******************************************************************************/
+// API del ROBOT
+/******************************************************************************/
+
 /*
- * Returns true if successful
- * side true <-> right <-> 2
- *      false <-> left <-> 3
+ * Activa o desactiva un LED
+ * @param side Lado del robot en el que se encuentra el LED
+ * @param on Activo o inactivo
+ * @return true = se ha hecho el cambio correctamente; false = algo ha ido mal
  */
 bool write_led(bool side, bool on) {
 
@@ -323,9 +445,14 @@ bool write_led(bool side, bool on) {
 
 }
 
-// wheel_id {2, 3}
-// direction {0, 1}
-// speed [0, 1022]
+/**
+ * Rotar una rueda del robot
+ * @param wheel_id Id del motor cuya rueda queremos rotar
+ * @param direction DirecciÃ³n en la que rotar la rueda, BACKWARD o FORWARD
+ * @param speed Velocidad. Entero entre 0 y 1022, ambos incluidos.
+ *              0 = parado; 1022 = mÃ¡xima velocidad
+ * @return true = ha ido bien; false = ha ido mal
+ */
 bool rotate_wheel(uint8_t wheel_id, bool direction, uint16_t speed) {
 
     if (speed > 1022) {
@@ -358,7 +485,7 @@ bool rotate_wheel(uint8_t wheel_id, bool direction, uint16_t speed) {
     parameters[0] = 0x20;
     parameters[1] = speed & 0xff; // Cogemos los 8 bits inferiores
     parameters[2] = (speed >> 8); // Cogemos los 8 bits superiores
-    parameters[2] |= (direction ? 1 : 0) * BIT2; // Cambiamos el bit 10 a 1 o 0 según dirección
+    parameters[2] |= (direction ? 1 : 0) * BIT2; // Cambiamos el bit 10 a 1 o 0 segï¿½n direcciï¿½n
 
     if(!write(wheel_id, 3, parameters)) {
         return 0;
@@ -368,23 +495,37 @@ bool rotate_wheel(uint8_t wheel_id, bool direction, uint16_t speed) {
 
 }
 
-// direction: true -> robot-forward, false -> robot-backward
+/**
+ * Rota la rueda izquierda del robot
+ * @param direction DirecciÃ³n en la que rotar la rueda, BACKWARD o FORWARD
+ * @param speed Velocidad. Ver rotate_wheel para ver el dominio.
+ */
 bool rotate_left(bool direction, uint16_t speed) {
     return rotate_wheel(0x03, !direction, speed);
 }
 
-// direction: true -> robot-forward, false -> robot-backward
+/**
+ * Rota la rueda derecha del robot
+ * @param direction DirecciÃ³n en la que rotar la rueda, BACKWARD o FORWARD
+ * @param speed Velocidad. Ver rotate_wheel para ver el dominio.
+ */
 bool rotate_right(bool direction, uint16_t speed) {
     return rotate_wheel(0x02, direction, speed);
 }
 
+/**
+ * Lee si hay obstÃ¡culos enfrente del robot.
+ * @return Uno o varios de los siguientes:
+ *         OBSTACLE_LEFT ObstÃ¡culo a la izquierda
+ *         OBSTACLE_CENTER ObstÃ¡culo justo enfrente
+ *         OBSTACLE_RIGHT ObstÃ¡culo a la derecha
+ *         Por ejemplo, si hay obstÃ¡culos a izda y dcha, se devolverÃ¡:
+ *         (OBSTACLE LEFT | OBSTACLE_RIGHT)
+ */
 uint8_t read_obstacle(void) {
 
-    uint8_t parameter_length = 2;
-    uint8_t parameters[] = {0x20, 1};
-
     // Ha ido mal
-    if(!read(100, parameter_length, parameters)) {
+    if(!read(100, 0x20, 1)) {
         return -1;
     }
 
@@ -392,23 +533,32 @@ uint8_t read_obstacle(void) {
 
 }
 
+/*
+ * Configura el parÃ¡metro de distancia a la que se detectan obstÃ¡culos.
+ * @param threshold Valor entre 0 y 255
+ *                        0 = detecciÃ³n a proximidad mÃ­nima
+ *                        255 = detecciÃ³n a proximidad mÃ¡xima
+ */
 void set_obstacle_threshold(uint8_t threshold) {
     uint8_t parameters[] = {0x14, threshold};
     write(100, 2, parameters);
 }
 
+/**
+ * Lee el contador de sonidos ("palmadas")
+ * @return El nÃºmero de palmadas detectadas en total en los Ãºltimos 800ms
+ */
 uint8_t read_claps(void) {
-    uint8_t parameters[] = {0x25, 1};
-    read(100, 2, parameters);
+    read(100, 0x25, 1);
     return response_g.status[5];
 }
 
 
 
 
-/**
- * MAIN
- */
+/******************************************************************************/
+// MAIN
+/******************************************************************************/
 
 void main(void)
 {
@@ -427,8 +577,8 @@ void main(void)
 	write_led(LEFT, 0);
 	write_led(RIGHT, 0);
 
-    rotate_left(1, 300);
-    rotate_right(1, 300);
+    rotate_left(FORWARD, 300);
+    rotate_right(FORWARD, 300);
 
     uint8_t claps = 0;
 	for(;;) {
@@ -443,29 +593,30 @@ void main(void)
 
 	    switch (ho) {
 	    case 0:
-            rotate_left(1, 300);
-            rotate_right(1, 300);
+            rotate_left(FORWARD, 300);
+            rotate_right(FORWARD, 300);
 	        break;
 	    case OBSTACLE_LEFT:
-	        rotate_left(1, 300);
-	        rotate_right(0, 300);
+	        rotate_left(FORWARD, 300);
+	        rotate_right(BACKWARD, 300);
 	        break;
 	    case OBSTACLE_RIGHT:
-	        rotate_left(0, 300);
-	        rotate_right(1, 300);
+	        rotate_left(BACKWARD, 300);
+	        rotate_right(FORWARD, 300);
 	        break;
 	    case OBSTACLE_CENTER:
 	    default:
-            rotate_left(1, 0);
-            rotate_right(1, 0);
+            rotate_left(FORWARD, 0);
+            rotate_right(FORWARD, 0);
 	    }
 	}
 }
 
 
-/**
- * HANDLERS
- */
+
+/******************************************************************************/
+// INTERRUPT HANDLERS
+/******************************************************************************/
 
 // Clock
 void TA0_0_IRQHandler(void) {
