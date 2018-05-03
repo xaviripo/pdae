@@ -4,7 +4,6 @@
 ]
 \LoadClass[titlepage]{article}
 
-
 % paper size
 \setlength\paperheight{297mm}
 \setlength\paperwidth{210mm}
@@ -102,3 +101,6 @@
 
 \end{titlepage}
 }
+
+%imagepath
+\graphicspath{{images/}}

@@ -354,12 +354,12 @@ void rx_status(void) {
         // Comprobar checksum sea correcto
         // Atenci�n! A pesar de que la documentaci�n pone que hay que sumar "instruction",
         // lo que hay que sumar es "error"
-        checksum = 0;
+        checksum = response_g.status[packet_length+3] + 1;
         for (i = 2; i < packet_length + 3; i++) {
             checksum += response_g.status[i];
         }
 
-        response_g.checksum_correct = (checksum + response_g.status[packet_length+3] + 1) == 0;
+        response_g.checksum_correct = checksum == 0;
 
     }
     else

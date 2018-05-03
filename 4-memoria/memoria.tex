@@ -170,31 +170,79 @@ escrigui la informació llegida en una variable global que es pot llegir més
 tard en altres punts del programa.
 
 
-
 \subsection{Conclusions}
 
-% TODO
+En aquesta pràctica hem pogut comprovar la importància de tenir cura de qué s'envia i com s'envia cap als perifèrics. Al mateix temps hem pogut comprovar que, malgrat tractar a molt baix nivell, la interfície amb els móduls bioloid és relativament senzilla de fer servir. A més, la documentació és prou completa i organitzada.
+\par A més, hem pogut comprovar el "risc" que porta crear objectes en memòria de manera dinàmica, fet que ens va portar problemes durant la pràctica. Això ens fa veure encara més les diferències amb la programació de software a la que estem acostumats.
 
 
 \section{Comentari del codi}
 
-% TODO
+Com la majoria de funcions estan prou comentades en el codi font, en aquest apartat es comentaran breument aquells fragments de codi que puguin portar confusió.
 
-%\begin{lstlisting}[language=C]
-%void Código
-%\end{lstlisting}
+\subsection{Nous tipus}
+Definim nous tipus per a facilitar la comprensió de les capçaleres de les funcions. \textit{Nota: amb gcc enum ocupa l'espai mínim possible (1 byte)}
 
+\begin{lstlisting}[language=C]
+typedef enum {RIGHT, LEFT} side_t;
 
+typedef enum {FORWARD, BACKWARD} direction_t;
+
+typedef uint8_t bool;
+typedef uint16_t time_t;
+\end{lstlisting}
+
+\subsection{Comprovació dels checksums}
+
+Com checksum és la negació de la suma de tots els paràmetres, li sumem 1 per a fer que sigui CA2 i li sumem tots els paràmetres. Si el checksum és correcte, el resultat será 0.
+\begin{lstlisting}[language=C]
+checksum = response_g.status[packet_length+3] + 1;
+for (i = 2; i < packet_length + 3; i++) {
+    checksum += response_g.status[i];
+}
+
+response_g.checksum_correct = checksum == 0;
+\end{lstlisting}
 
 \section{Diagrames de flux}
 
-% TODO
+\subsection{Funcions de transmissió i recepció de dades}
 
-%\begin{figure}[H]
-%  \centering
-%  \includegraphics[scale=.45]{main}
-%\end{figure}
+Les funcions principals implementades en aquesta pràctica són les encarregades d'establir la comunicació entre el processador i els perifèrics del robot. La resta de funcions faran un ús intensiu d'aquestes funcions:
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=.7]{tx_status.png}
+  \caption{Funció de transmissió}
+  \label{fig:tx}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=.7]{rx_status.png}
+  \caption{Funció de recepció}
+  \label{fig:rx}
+\end{figure}
+
+La resta de funcions implementades (la biblioteca de funcions), segueixen un patrò molt similar. Com a exemple de funció que \textbf{escriu} als periférics, posem el diagrama per a posar velocitat a les rodes:
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=.7]{rotate_wheel.png}
+  \caption{Funció per a rotar les rodes}
+  \label{fig:wheel}
+\end{figure}
+
+Les funcions que \textbf{llegeixen} dels periférics segueixen una estructura similar a la de detecció d'obstacles:
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=.7]{read_obstacle.png}
+  \caption{Funció per a detectar obstacles}
+  \label{fig:obstacle}
+\end{figure}
+
+\textit{Cal notar que un resultat no esperat en \textbf{qualsevol} operació finalitza la funció amb error.}
 
 
 \end{document}
