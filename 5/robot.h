@@ -38,7 +38,10 @@
 
 // Lado del robot, usado para identificar el motor;
 // se considera "delante" la dirección FORWARD
-typedef enum {RIGHT, LEFT} side_t;
+typedef enum {LEFT, RIGHT} side_t;
+
+// Sentido de rotaci�n, viendo el robot en plano cenital;
+typedef enum {CLOCKWISE, COUNTER_CLOCKWISE} rot_t;
 
 // Dirección en la que se puede mover el robot;
 // FORWARD es hacia donde apunta el sensor
@@ -58,6 +61,12 @@ typedef struct RxPacket {
     bool timeout;
     bool checksum_correct;
 } RxPacket;
+
+typedef struct sensor_distance {
+    uint8_t left;
+    uint8_t center;
+    uint8_t right;
+} sensor_distance;
 
 
 /******************************************************************************/
@@ -150,6 +159,12 @@ bool rotate_left(bool direction, uint16_t speed);
 bool rotate_right(bool direction, uint16_t speed);
 
 /**
+ * Rota el robot sobre s� mismo
+ * @param direction Direcci�n. RIGHT = cw visto desde arriba, LEFT = ccw visto desde arriba
+ */
+bool turn(rot_t direction, uint16_t speed);
+
+/**
  * Lee si hay obstáculos enfrente del robot.
  * @return Uno o varios de los siguientes:
  *         OBSTACLE_LEFT Obstáculo a la izquierda
@@ -159,6 +174,9 @@ bool rotate_right(bool direction, uint16_t speed);
  *         (OBSTACLE LEFT | OBSTACLE_RIGHT)
  */
 uint8_t read_obstacle(void);
+
+sensor_distance read_obstacle_distance(void);
+
 /*
  * Configura el parámetro de distancia a la que se detectan obstáculos.
  * @param threshold Valor entre 0 y 255

@@ -487,6 +487,21 @@ bool rotate_right(bool direction, uint16_t speed) {
     return rotate_wheel(0x02, direction, speed);
 }
 
+bool turn(rot_t direction, uint16_t speed) {
+    switch (direction) {
+    case CLOCKWISE:
+        rotate_left(FORWARD, speed);
+        rotate_left(BACKWARD, speed);
+        break;
+    case COUNTER_CLOCKWISE:
+        rotate_left(BACKWARD, speed);
+        rotate_left(FORWARD, speed);
+        break;
+    default:
+        break;
+    }
+}
+
 /**
  * Lee si hay obstáculos enfrente del robot.
  * @return Uno o varios de los siguientes:
@@ -504,6 +519,23 @@ uint8_t read_obstacle(void) {
     }
 
     return response_g.status[5];
+
+}
+
+sensor_distance read_obstacle_distance(void) {
+
+    sensor_distance r;
+
+    // Ha ido mal
+    if(!read(100, 0x1A, 3)) {
+        return r;
+    }
+
+    r.left = response_g.status[5];
+    r.center = response_g.status[6];
+    r.right = response_g.status[7];
+
+    return r;
 
 }
 
