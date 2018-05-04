@@ -43,7 +43,7 @@ typedef enum {RIGHT, LEFT} side_t;
 
 // Dirección en la que se puede mover el robot;
 // FORWARD es hacia donde apunta el sensor
-typedef enum {FORWARD, BACKWARD} direction_t;
+typedef enum {BACKWARD, FORWARD} direction_t;
 
 typedef uint8_t bool;
 typedef uint16_t time_t;
