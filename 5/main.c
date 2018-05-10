@@ -3,6 +3,9 @@
 /******************************************************************************/
 
 #include "robot.h"
+#include "hal/timers.h"
+#include "hal/communication.h"
+#include "msp.h"
 
 uint8_t stop_g = 1;
 
@@ -25,6 +28,8 @@ time_t delay_backwards(uint8_t hits, time_t base_time, time_t multiplier_time) {
     return base_time + hits*hits*multiplier_time;
 }
 
+
+
 /******************************************************************************/
 // MAIN
 /******************************************************************************/
@@ -35,10 +40,18 @@ void main(void)
     // Initializations
     WDTCTL = WDTPW + WDTHOLD; // Paramos el watchdog timer
     init_ucs_24MHz(); // Inicalizar UCS
-    init_timers();
+
+    // Fase 0
+    init_timers_0();
     init_botones();
-    init_uart();
-    init_interrupts();
+    init_comm_0();
+
+    // Fase 1
+    init_timers_1();
+    init_comm_1(); // TODO creo que la fase 1 de los botones estÃ¡ aquÃ­ dentro
+
+    // Fase 2
+    __enable_interrupt(); //Habilitamos las interrupciones a nivel global del micro.
 
     // Settings
     set_obstacle_threshold(255);
@@ -57,7 +70,7 @@ void main(void)
     rotate_left(FORWARD, speed);
     rotate_right(FORWARD, speed);
 
-    // Número de hits en el sensor del centro seguidos
+    // Nï¿½mero de hits en el sensor del centro seguidos
     uint8_t forward_hits = 0;
 
     sensor_distance sd;
@@ -188,7 +201,7 @@ void main(void)
 //            break;
 //
 //        default:
-//            // Nunca debería entrar aquí
+//            // Nunca deberï¿½a entrar aquï¿½
 //            rotate_left(FORWARD, 0);
 //            rotate_right(FORWARD, 0);
 //            break;

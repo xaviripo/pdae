@@ -1,10 +1,3 @@
-/*
- * robot.h
- *
- *  Created on: 4 maig 2018
- *      Author: mat.aules
- */
-
 #ifndef ROBOT_H_
 #define ROBOT_H_
 
@@ -12,9 +5,7 @@
 // INCLUDES
 /******************************************************************************/
 
-#include <stdio.h>
-#include <stdint.h>
-#include "msp.h"
+#include "common.h"
 #include "lib_PAE2.h"
 
 
@@ -22,9 +13,6 @@
 /******************************************************************************/
 // DEFINES
 /******************************************************************************/
-
-// Máximo número de parámetros en TX
-#define MAX_PARAMETER_LENGTH 16
 
 // Usado para leer el output de los sensores
 #define OBSTACLE_LEFT 0x01
@@ -40,15 +28,12 @@
 // se considera "delante" la dirección FORWARD
 typedef enum {LEFT, RIGHT} side_t;
 
-// Sentido de rotaci�n, viendo el robot en plano cenital;
+// Sentido de rotaci�n, viendo el robot en plano cenital;
 typedef enum {CLOCKWISE, COUNTER_CLOCKWISE} rot_t;
 
 // Dirección en la que se puede mover el robot;
 // FORWARD es hacia donde apunta el sensor
 typedef enum {BACKWARD, FORWARD} direction_t;
-
-typedef uint8_t bool;
-typedef uint16_t time_t;
 
 
 
@@ -56,81 +41,12 @@ typedef uint16_t time_t;
 // STRUCTS
 /******************************************************************************/
 
-typedef struct RxPacket {
-    int8_t status[MAX_PARAMETER_LENGTH];
-    bool timeout;
-    bool checksum_correct;
-} RxPacket;
-
 typedef struct sensor_distance {
     uint8_t left;
     uint8_t center;
     uint8_t right;
 } sensor_distance;
 
-
-/******************************************************************************/
-// INITS
-/******************************************************************************/
-
-void init_uart(void);
-
-void init_timers(void);
-
-void init_interrupts(void);
-
-/******************************************************************************/
-// HELPERS para TX y RX
-/******************************************************************************/
-
-//////////////// Reloj
-
-/**
- * Activa o desactiva la interrupción del reloj
- * @param enable true = activar; false = desactivar
- */
-void set_timer_interrupt(bool enable);
-
-/**
- * Resetea el timer a 0
- */
-void reset_time(void);
-/**
- * ¿Han pasado time milisegundos desde que se ha reseteado el contador?
- * @param time Tiempo en milisegundos que se quiere comprobar
- * @return true = ha pasado el tiempo; false = aún no ha pasado
- */
-bool has_passed(time_t time);
-
-
-//////////////// Envío y recepción de bytes por la UART
-
-/**
- * Establece la dirección de la línea a RX
- */
-void set_direction_rx(void);
-
-/**
- * Establece la dirección de la línea a TX
- */
-void set_direction_tx(void);
-
-/**
- * Envía byte por la UCA2
- */
-void tx_byte_uac2(uint8_t data);
-
-/**
- * ¿Se ha recibido algún byte desde que se ha leído el último?
- * @return true = se ha recibido byte; false = no se ha recibido
- */
-bool has_received_byte(void);
-
-/**
- * Lee el último byte recibidio y desactiva el flag de byte recbido.
- * @return Byte que se ha recibido
- */
-uint8_t get_read_byte(void);
 
 
 /******************************************************************************/
@@ -159,8 +75,8 @@ bool rotate_left(bool direction, uint16_t speed);
 bool rotate_right(bool direction, uint16_t speed);
 
 /**
- * Rota el robot sobre s� mismo
- * @param direction Direcci�n. RIGHT = cw visto desde arriba, LEFT = ccw visto desde arriba
+ * Rota el robot sobre s� mismo
+ * @param direction Direcci�n. RIGHT = cw visto desde arriba, LEFT = ccw visto desde arriba
  */
 bool turn(rot_t direction, uint16_t speed);
 
