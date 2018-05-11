@@ -4,38 +4,33 @@
 
 #include "robot.h"
 #include "hal/timers.h"
+#include "hal/controls.h"
 #include "hal/communication.h"
 #include "msp.h"
 
+
+
+/******************************************************************************/
+// GLOBALS
+/******************************************************************************/
+
 uint8_t stop_g = 1;
 
-void init_botones() {
-    //Boton S1 del MK II:
-    P5SEL0 &= ~BIT1;   //Pin P5.1 como I/O digital,
-    P5SEL1 &= ~BIT1;   //Pin P5.1 como I/O digital,
-    P5DIR &= ~BIT1; //Pin P5.1 como entrada
-    P5IES &= ~BIT1;   // con transicion L->H
-    P5IE |= BIT1;     //Interrupciones activadas en P5.1,
-    P5IFG = 0;    //Limpiamos todos los flags de las interrupciones del puerto 5
-    //P5REN: Ya hay una resistencia de pullup en la placa MK II
 
-    //Int. port 5 = 39 corresponde al bit 7 del segundo registro ISERx:
-    NVIC->ICPR[1] |= BIT7; //Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
-    NVIC->ISER[1] |= BIT7; //y habilito las interrupciones del puerto
-}
+
+/******************************************************************************/
+// HELPERS
+/******************************************************************************/
 
 time_t delay_backwards(uint8_t hits, time_t base_time, time_t multiplier_time) {
     return base_time + hits*hits*multiplier_time;
 }
 
-
-
 /******************************************************************************/
 // MAIN
 /******************************************************************************/
 
-void main(void)
-{
+void inits(void) {
 
     // Initializations
     WDTCTL = WDTPW + WDTHOLD; // Paramos el watchdog timer
@@ -43,15 +38,25 @@ void main(void)
 
     // Fase 0
     init_timers_0();
-    init_botones();
+    init_controls_0();
     init_comm_0();
 
     // Fase 1
     init_timers_1();
-    init_comm_1(); // TODO creo que la fase 1 de los botones está aquí dentro
+    init_controls_1();
+    init_comm_1();
 
     // Fase 2
-    __enable_interrupt(); //Habilitamos las interrupciones a nivel global del micro.
+    //Habilitamos las interrupciones a nivel global del micro.
+    __enable_interrupt();
+
+}
+
+void main(void)
+{
+
+    // Hacer que las cosas funcionen
+    inits();
 
     // Settings
     set_obstacle_threshold(255);
@@ -212,13 +217,12 @@ void main(void)
 
 }
 
-//ISR para las interrupciones del puerto 5:
-void PORT5_IRQHandler(void) { //interrupci�n de los botones. Actualiza el valor de la variable global estado.
-    uint8_t flag = P5IV; //guardamos el vector de interrupciones. De paso, al acceder a este vector, se limpia automaticamente.
-    P5IE &= 0xCD;   //interrupciones Joystick y S1 en port 5 desactivadas
 
+
+/******************************************************************************/
+// HANDLERS
+/******************************************************************************/
+
+void s1_pressed(void) {
     stop_g = !stop_g;
-
-    P5IE |= 0x32;   //interrupciones Joystick y S1 en port 5 reactivadas
 }
-
