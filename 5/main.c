@@ -11,11 +11,45 @@
 
 
 /******************************************************************************/
+// ENUMS
+/******************************************************************************/
+
+// Enum para la máquina de estados del movimiento del robot
+typedef enum {
+    STOP,                   // no hace nada
+    FOLLOW,                 // se mantiene a distancia cte de la pared
+    COLLISION,        // gira en sentido canónico (left wall -> cw)
+    LOSS,             // gira en sentido no canónico (left wall -> ccw)
+    DEAD_END          // retrocede en marcha atrás pq no puede girar
+} state_t;
+
+
+
+/******************************************************************************/
 // GLOBALS
 /******************************************************************************/
 
 uint8_t stop_g = 1;
 
+// Para almacenar el input de los sensores
+sensor_distance sd;
+
+uint8_t sensor_wall, sensor_front, sensor_wallnt;
+bool obstacle_wall, obstacle_front, obstacle_wallnt;
+
+// Main loop
+uint8_t threshold = 20;
+
+// Velocidad de crucero
+uint16_t speed = 300;
+int16_t diff = 0;
+uint16_t speed_wall, speed_wallnt;
+
+// Estado en el que se encuentra el robot
+state_t state = STOP;
+
+// Pared a reseguir (izda o dcha)
+side_t wall;
 
 
 /******************************************************************************/
@@ -48,281 +82,124 @@ void inits(void) {
 
 }
 
+void read_sensors(void) {
+    sd = read_obstacle_distance();
+
+    sensor_wall = (wall == LEFT ? sd.left : sd.right);
+    sensor_front = sd.center;
+    sensor_wallnt = (wall == LEFT ? sd.right : sd.left);
+
+    obstacle_wall = sensor_wall > threshold;
+    obstacle_front = sensor_front > threshold;
+    obstacle_wallnt = sensor_wallnt > threshold;
+}
+
 void main(void)
 {
 
     // Hacer que las cosas funcionen
     inits();
 
-    // Settings
-    set_obstacle_threshold(20);
-
-    // Main loop
-    uint8_t obstacle;
-    uint16_t speed = 300;
-
-    sensor_distance sd;
-
-    /**
-     * 0 -> buscando pared
-     * 1 -> hemos detectado pared, rotar hasta que este perpendicular
-     * 2 -> seguir pared a distancia fija
-     * 3 -> la pared se ha cortado bruscamente, hay que volver a ella
-     * 4 -> se encuentra con pared por delante
-     */
-    uint8_t state = 0;
-
-    /**
-     * which wall are we following
-     * 0 -> left
-     * 1 -> right
-     */
-    side_t wall;
-
-    // Minimum measured distance on the right/left sensors
-    uint8_t min_distance = 0;
-
-    // Used in the loop
-    uint8_t sensor;
-    int16_t diff, speed_left, speed_right;
+    bool front_seen;
+    set_obstacle_threshold(threshold);
 
     // Initial state
     write_led(LEFT, 0);
     write_led(RIGHT, 0);
-    rotate_left(FORWARD, speed);
-    rotate_right(FORWARD, speed);
-
     rotate_left(FORWARD, 0);
     rotate_right(FORWARD, 0);
-    while (stop_g);
 
-    set_timer_interrupt(1);
     for (;;) {
+
+        // Leemos lo que hay fuera
+        read_sensors();
+
+        // Decidimos el estado mediante los inputs (máquina de Moore)
+        if (stop_g) {
+            state = STOP;
+        } else if (obstacle_wall && obstacle_front && obstacle_wallnt) {
+            // Wally wally wally no scapey
+            state = DEAD_END;
+        } else if (sensor_wall == 0) {
+            // Loss
+            state = LOSS;
+        } else if (obstacle_wall && obstacle_front) {
+            // Collision
+            state = COLLISION;
+        } else {
+            // Follow
+            state = FOLLOW;
+        }
+
+        // Actuamos según el estado
         switch (state) {
 
-        case 0:
-            obstacle = read_obstacle();
-            if (obstacle) {
-                state = 1;
-                rotate_right(FORWARD, 0);
-                rotate_left(FORWARD, 0);
-            }
-            wall = obstacle & OBSTACLE_LEFT ? LEFT : RIGHT;
+        case STOP: // no hace nada
+            rotate_left(FORWARD, 0);
+            rotate_right(FORWARD, 0);
             break;
 
-        case 1:
-            sd = read_obstacle_distance();
-            sensor = (wall == RIGHT ? sd.right : sd.left);
+        case FOLLOW: // se mantiene a distancia cte de la pared
 
-            if (sensor >= min_distance) {
-                min_distance = (wall == RIGHT ? sd.right : sd.left);
-                rotate_right(wall == RIGHT ? FORWARD : BACKWARD, speed);
-                rotate_left(wall == RIGHT ? BACKWARD : FORWARD, speed);
-            } else {
-                state = 2;
-            }
-            break;
+            diff = sensor_wall - threshold;
 
-        case 2:
-            sd = read_obstacle_distance();
-            sensor = (wall == RIGHT ? sd.right : sd.left);
+            speed_wall = speed - diff*diff;
+            if (speed_wall < SPEED_MIN) speed_wall = SPEED_MIN;
+            if (speed_wall > SPEED_MAX) speed_wall = SPEED_MAX;
 
-            if (sensor == 0) {
-                state = 3;
-                break;
-            }
+            speed_wallnt = speed + diff*diff;
+            if (speed_wallnt < SPEED_MIN) speed_wallnt = SPEED_MIN;
+            if (speed_wallnt > SPEED_MAX) speed_wallnt = SPEED_MAX;
 
-            if (sd.center > min_distance) {
-                state = 4;
-                break;
-            }
-
-            diff = sensor - min_distance;
-
-            speed_left = speed - diff;
-            if (speed_left < 0) speed_left = 0;
-            if (speed_left > 1022) speed_left = 1022;
-
-            speed_right = speed + diff;
-            if (speed_right < 0) speed_right = 0;
-            if (speed_right > 1022) speed_right = 1022;
-
-            rotate_left(FORWARD, wall == RIGHT ? speed_left : speed_right);
-            rotate_right(FORWARD, wall == RIGHT ? speed_right : speed_left);
-            break;
-
-        case 3:
-            sd = read_obstacle_distance();
-            sensor = (wall == RIGHT ? sd.right : sd.left);
-
-            if (sensor != 0) {
-                state = 2;
-                break;
-            }
-
-            rotate_left(FORWARD, wall == RIGHT ? speed + 255 : 0);
-            rotate_right(FORWARD, wall == RIGHT ? 0 : speed + 255);
-
+            rotate_left(FORWARD, wall == RIGHT ? speed_wall : speed_wallnt);
+            rotate_right(FORWARD, wall == RIGHT ? speed_wallnt : speed_wall);
 
             break;
 
-        case 4:
-            sd = read_obstacle_distance();
-            sensor = (wall == RIGHT ? sd.right : sd.left);
+        case COLLISION: // gira en sentido canónico (left wall -> cw)
 
-            if (sd.center < min_distance) {
-                state = 2;
-                break;
-            }
+            rotate_left(FORWARD, wall == RIGHT ? speed : 0); // TODO poner una velocidad chuli
+            rotate_right(FORWARD, wall == RIGHT ? 0 : speed);
+
+            break;
+
+        case LOSS: // gira en sentido no canónico (left wall -> ccw)
 
             rotate_left(wall == RIGHT ? BACKWARD : FORWARD, speed);
             rotate_right(wall == RIGHT ? FORWARD : BACKWARD, speed);
 
             break;
 
-        default:
+        case DEAD_END: // callejón sin salida
+
+            diff = sensor_wall - sensor_wallnt;
+
+            speed_wall = speed - diff;
+            if (speed_wall < SPEED_MIN) speed_wall = SPEED_MIN;
+            if (speed_wall > SPEED_MAX) speed_wall = SPEED_MAX;
+
+            speed_wallnt = speed + diff;
+            if (speed_wallnt < SPEED_MIN) speed_wallnt = SPEED_MIN;
+            if (speed_wallnt > SPEED_MAX) speed_wallnt = SPEED_MAX;
+
+            while (obstacle_wall && obstacle_wallnt) {
+                read_sensors();
+                rotate_left(BACKWARD, wall == RIGHT ? speed_wallnt : speed_wall); // TODO comprobar si es wallnt : wall o al revés
+                rotate_right(BACKWARD, wall == RIGHT ? speed_wall : speed_wallnt);
+            }
+
+            front_seen = 0;
+
+            while (!obstacle_wallnt && !front_seen) {
+                rotate_left(wall == RIGHT ? FORWARD : BACKWARD, speed);
+                rotate_right(wall == RIGHT ? BACKWARD : FORWARD, speed);
+
+                read_sensors();
+                front_seen = front_seen || obstacle_front;
+            }
+
             break;
-
         }
-
-
-
-
-//        sd = read_obstacle_distance();
-//
-//        obstacle = read_obstacle();
-//
-//        switch (obstacle) {
-//
-//        case 0:
-//            rotate_left(FORWARD, speed);
-//            rotate_right(FORWARD, speed);
-//            break;
-//
-//        case OBSTACLE_LEFT:
-//            if (sd.left < min_distance) {
-//                min_distance = sd.left;
-//                rotate_left(FORWARD, speed);
-//                rotate_right(BACKWARD, speed);
-//            }
-//            break;
-//
-//        }
-
-//        switch (obstacle) {
-//
-//        case 0:
-//            rotate_left(FORWARD, speed);
-//            rotate_right(FORWARD, speed);
-//            break;
-//
-//        case OBSTACLE_LEFT:
-//
-//            // Si tiene obs a la izda
-//            if (obstacle_memory & OBSTACLE_LEFT) {
-//
-//                rotate_left(FORWARD, speed);
-//                rotate_right(BACKWARD, speed);
-//
-//                reset_time();
-//                while (!has_passed(time_rotate));
-//
-//                obstacle_memory &= ~OBSTACLE_LEFT;
-//            }
-//
-//            rotate_left(FORWARD, speed);
-//            rotate_right(FORWARD, speed);
-//
-//            break;
-//
-//        case OBSTACLE_RIGHT:
-//
-//            forward_hits = 0;
-//
-//            // Si tiene obs a la dcha
-//            if (obstacle_memory & OBSTACLE_RIGHT) {
-//
-//                rotate_left(BACKWARD, speed);
-//                rotate_right(FORWARD, speed);
-//
-//                reset_time();
-//                while (!has_passed(time_rotate));
-//                obstacle_memory &= ~OBSTACLE_RIGHT;
-//            }
-//
-//            rotate_left(FORWARD, speed);
-//            rotate_right(FORWARD, speed);
-//
-//            break;
-//
-//        case OBSTACLE_LEFT | OBSTACLE_RIGHT:
-//
-//            forward_hits = 0;
-//
-//            rotate_left(FORWARD, speed);
-//            rotate_right(FORWARD, speed);
-//            obstacle_memory = 0;
-//            break;
-//
-//        case OBSTACLE_CENTER:
-//            forward_hits++;
-//
-//            rotate_left(BACKWARD, speed);
-//            rotate_right(BACKWARD, speed);
-//
-//            reset_time();
-//            while (!has_passed(delay_backwards(forward_hits, base_time, multiplier_time)));
-//
-//            rotate_left(FORWARD, speed);
-//            rotate_right(BACKWARD, speed);
-//
-//            break;
-//
-//        case OBSTACLE_CENTER | OBSTACLE_LEFT:
-//            forward_hits++;
-//
-//            rotate_left(BACKWARD, speed);
-//            rotate_right(BACKWARD, speed);
-//
-//            reset_time();
-//            while (!has_passed(delay_backwards(forward_hits, base_time, multiplier_time)));
-//
-//            rotate_left(FORWARD, speed);
-//            rotate_right(BACKWARD, speed);
-//
-//            obstacle_memory |= OBSTACLE_LEFT;
-//
-//            break;
-//
-//        case OBSTACLE_CENTER | OBSTACLE_RIGHT:
-//            forward_hits++;
-//
-//            rotate_left(BACKWARD, speed);
-//            rotate_right(BACKWARD, speed);
-//
-//
-//            reset_time();
-//            while (!has_passed(delay_backwards(forward_hits, base_time, multiplier_time)));
-//
-//            rotate_left(BACKWARD, speed);
-//            rotate_right(FORWARD, speed);
-//
-//            obstacle_memory |= OBSTACLE_RIGHT;
-//
-//            break;
-//
-//        case OBSTACLE_LEFT | OBSTACLE_CENTER | OBSTACLE_RIGHT:
-//            rotate_left(FORWARD, 0);
-//            rotate_right(FORWARD, 0);
-//            break;
-//
-//        default:
-//            // Nunca deber�a entrar aqu�
-//            rotate_left(FORWARD, 0);
-//            rotate_right(FORWARD, 0);
-//            break;
-//
-//        }
 
     }
 

@@ -19,6 +19,10 @@
 #define OBSTACLE_CENTER 0x02
 #define OBSTACLE_RIGHT 0x04
 
+// Rango de velocidades
+#define SPEED_MIN 0
+#define SPEED_MAX 1022
+
 
 /******************************************************************************/
 // TYPEDEFS
