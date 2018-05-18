@@ -15,6 +15,7 @@ void init_controls_1(void);
 /******************************************************************************/
 
 extern void s1_pressed(void); // To be implemented in main.c
+extern void s2_pressed(void); // To be implemented in main.c
 
 
 
