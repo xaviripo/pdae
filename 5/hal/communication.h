@@ -1,6 +1,10 @@
 #ifndef COMMUNICATION_H_
 #define COMMUNICATION_H_
 
+// Instrucciones que acepta el motor y los sensores
+#define READ_DATA 0x02
+#define WRITE_DATA 0x03
+
 /******************************************************************************/
 // INCLUDES
 /******************************************************************************/

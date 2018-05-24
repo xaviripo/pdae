@@ -38,7 +38,18 @@ void init_timers_0(void) {
     // Lo ponemos a 30 ya que f/1000/8 = 24*10^6/1000/8 = 3000
     TA0CCR0 = 3000;
 
+    TA1CTL =
+            TASSEL__ACLK + // clock ACLK
+            MC__UP +       // modo UP
+            ID__8;         // /8
+
+    TA1CCTL0 =
+            CCIE; // activar int clock
+
+    // Valor inicial, que cambiará según el `tempo`
+    TA1CCR0 = 1; // todo arreglar esto
 }
+
 
 void init_timers_1(void)
 {
@@ -46,6 +57,9 @@ void init_timers_1(void)
     NVIC->ICPR[0] |= BIT8; // Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
     NVIC->ISER[0] |= BIT8; // y habilito las interrupciones del puerto
 
+    // Timer musica
+    NVIC->ICPR[0] |= BITA; //Primero, me aseguro de que no quede ninguna interrupcion residual pendiente para este puerto,
+    NVIC->ISER[0] |= BITA; //y habilito las interrupciones del puerto
 }
 
 
@@ -103,6 +117,15 @@ void TA0_0_IRQHandler(void) {
     set_timer_interrupt(0); // Desactivamos interrupciones
 
     time_g++; // Ha pasado 1ms
+
+    TA0CCTL0 &= ~CCIFG; // Limpiar flag
+    set_timer_interrupt(1);  // Reactivamos interrupciones
+}
+
+void TA1_0_IRQHandler(void) {
+    set_timer_interrupt(0); // Desactivamos interrupciones
+
+    
 
     TA0CCTL0 &= ~CCIFG; // Limpiar flag
     set_timer_interrupt(1);  // Reactivamos interrupciones

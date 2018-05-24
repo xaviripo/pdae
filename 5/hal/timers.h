@@ -49,6 +49,6 @@ bool has_passed(time_t time);
  */
 uint8_t get_timeout(void);
 
-
+extern void on_music_tick();
 
 #endif /* TIMERS_H_ */
