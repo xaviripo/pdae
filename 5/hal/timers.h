@@ -29,19 +29,22 @@ void init_timers_1();
  * Activa o desactiva la interrupción del reloj
  * @param enable true = activar; false = desactivar
  */
-void set_timer_interrupt(bool enable);
+void set_comm_timer_interrupt(bool enable);
+void set_sec_timer_interrupt(bool enable);
 
 /**
  * Resetea el timer a 0
  */
-void reset_time(void);
+void reset_comm_time(void);
+void reset_sec_time(void);
 
 /**
  * ¿Han pasado time milisegundos desde que se ha reseteado el contador?
  * @param time Tiempo en milisegundos que se quiere comprobar
  * @return true = ha pasado el tiempo; false = aún no ha pasado
  */
-bool has_passed(time_t time);
+bool has_passed_comm(time_t time);
+bool has_passed_sec(time_t time);
 
 
 /**

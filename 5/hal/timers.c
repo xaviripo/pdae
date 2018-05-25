@@ -12,7 +12,8 @@
 /******************************************************************************/
 
 // Usado por el clock para contar el tiempo que ha pasado en ms.
-time_t time_g = 0;
+time_t time_comm_g = 0;
+time_t time_sec_g = 0;
 
 
 
@@ -39,7 +40,7 @@ void init_timers_0(void) {
     TA0CCR0 = 3000;
 
     TA1CTL =
-            TASSEL__ACLK + // clock ACLK
+            TASSEL__SMCLK + // clock ACLK
             MC__UP +       // modo UP
             ID__8;         // /8
 
@@ -47,7 +48,7 @@ void init_timers_0(void) {
             CCIE; // activar int clock
 
     // Valor inicial, que cambiará según el `tempo`
-    TA1CCR0 = 1; // todo arreglar esto
+    TA1CCR0 = 3000; // todo arreglar esto
 }
 
 
@@ -72,7 +73,7 @@ void init_timers_1(void)
  * Activa o desactiva la interrupción del reloj
  * @param enable true = activar; false = desactivar
  */
-void set_timer_interrupt(bool enable)
+void set_comm_timer_interrupt(bool enable)
 {
     if (enable) {
         TA0CCTL0 |=  CCIE;
@@ -81,11 +82,24 @@ void set_timer_interrupt(bool enable)
     }
 }
 
+void set_sec_timer_interrupt(bool enable)
+{
+    if (enable) {
+        TA1CCTL0 |=  CCIE;
+    } else {
+        TA1CCTL0 &= ~CCIE;
+    }
+}
+
 /**
  * Resetea el timer a 0
  */
-void reset_time(void) {
-    time_g = 0;
+void reset_comm_time(void) {
+    time_comm_g = 0;
+}
+
+void reset_sec_time(void) {
+    time_sec_g = 0;
 }
 
 /**
@@ -93,11 +107,15 @@ void reset_time(void) {
  * @param time Tiempo en milisegundos que se quiere comprobar
  * @return true = ha pasado el tiempo; false = aún no ha pasado
  */
-bool has_passed(time_t time)
+bool has_passed_comm(time_t time)
 {
-    return time < time_g;
+    return time < time_comm_g;
 }
 
+bool has_passed_sec(time_t time)
+{
+    return time < time_sec_g;
+}
 
 /**
  * Devuelve la constante de timeout en milisegundos
@@ -114,19 +132,19 @@ uint8_t get_timeout(void) {
 
 // Clock
 void TA0_0_IRQHandler(void) {
-    set_timer_interrupt(0); // Desactivamos interrupciones
+    set_comm_timer_interrupt(0); // Desactivamos interrupciones
 
-    time_g++; // Ha pasado 1ms
+    time_comm_g++; // Ha pasado 1ms
 
     TA0CCTL0 &= ~CCIFG; // Limpiar flag
-    set_timer_interrupt(1);  // Reactivamos interrupciones
+    set_comm_timer_interrupt(1);  // Reactivamos interrupciones
 }
 
 void TA1_0_IRQHandler(void) {
-    set_timer_interrupt(0); // Desactivamos interrupciones
+    set_sec_timer_interrupt(0); // Desactivamos interrupciones
 
-    
+    time_sec_g++;
 
-    TA0CCTL0 &= ~CCIFG; // Limpiar flag
-    set_timer_interrupt(1);  // Reactivamos interrupciones
+    TA1CCTL0 &= ~CCIFG; // Limpiar flag
+    set_sec_timer_interrupt(1);  // Reactivamos interrupciones
 }

@@ -208,18 +208,18 @@ void rx_status(void) {
     bool received_byte;
 
     set_direction_rx(); //Ponemos la linea half duplex en Rx
-    set_timer_interrupt(1);
+    set_comm_timer_interrupt(1);
 
     response_g.status[3] = 0x00;
 
     for(i = 0; i < 4; i++)
     {
-        reset_time();
+        reset_comm_time();
         received_byte = 0;
         while (!received_byte) // Se_ha_recibido_Byte())
         {
             received_byte = has_received_byte();
-            timeout = has_passed(TIMEOUT); // tiempo en ms
+            timeout = has_passed_comm(TIMEOUT); // tiempo en ms
             if (timeout) break; //sale del while
         }
         //sale del for si ha habido Timeout
@@ -237,12 +237,12 @@ void rx_status(void) {
 
         for(i = 4; i < packet_length + 4; i++) //packet_length; i++)
         {
-            reset_time();
+            reset_comm_time();
             received_byte = 0;
             while (!received_byte) // Se_ha_recibido_Byte())
             {
                 received_byte = has_received_byte();
-                timeout = has_passed(TIMEOUT); // tiempo en decenas de microsegundos
+                timeout = has_passed_comm(TIMEOUT); // tiempo en decenas de microsegundos
                 if (timeout) break; //sale del while
             }
             //sale del for si ha habido Timeout

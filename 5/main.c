@@ -8,6 +8,7 @@
 #include "hal/timers.h"
 #include "hal/controls.h"
 #include "hal/communication.h"
+#include "hal/sound.h"
 #include "msp.h"
 #include "lib_PAE2.h"
 
@@ -31,12 +32,14 @@ typedef enum {
 #define LINE_SPEED 2
 #define LINE_OBSTACLE 3
 #define LINE_THRESHOLD 4
-#define LINE_DEBUG 5
+#define LINE_WALL 5
+#define LINE_DEBUG 6
+
+#define BUFFER_SIZE 4
 
 /******************************************************************************/
 // GLOBALS
 /******************************************************************************/
-
 uint8_t stop_g = 1;
 uint8_t callibrate_g = 0;
 
@@ -47,10 +50,12 @@ uint8_t sensor_wall, sensor_front, sensor_wallnt;
 bool obstacle_wall, obstacle_front, obstacle_wallnt;
 
 // Main loop
-uint8_t threshold = 40;
+uint8_t threshold_wall = 40;
+uint8_t threshold_wallnt = 40;
+uint8_t threshold_front = 40;
 
 // Velocidad de crucero
-uint16_t speed = 500;
+uint16_t speed = 300;
 int16_t diff = 0;
 int32_t speed_wall, speed_wallnt;
 
@@ -59,6 +64,9 @@ state_t state = STOP;
 
 // Pared a reseguir (izda o dcha)
 side_t wall = LEFT;
+
+// global to test melodies
+int i = 0;
 
 char cadena[16];
 
@@ -97,39 +105,51 @@ void inits(void) {
 }
 
 void read_sensors(void) {
+
     sd = read_obstacle_distance();
 
     sensor_wall = (wall == LEFT ? sd.left : sd.right);
     sensor_front = sd.center;
     sensor_wallnt = (wall == LEFT ? sd.right : sd.left);
 
-    obstacle_wall = sensor_wall > threshold;
-    obstacle_front = sensor_front > threshold;
-    obstacle_wallnt = sensor_wallnt > threshold;
+    obstacle_wall = sensor_wall > threshold_wall;
+    obstacle_front = sensor_front > threshold_front;
+    obstacle_wallnt = sensor_wallnt > threshold_wallnt;
 
-    halLcdPrintLine("LFT CTR RGT", LINE_SPEED-1, NORMAL_TEXT);
+    halLcdPrintLine("  LFT CTR RGT", LINE_SPEED-1, NORMAL_TEXT);
 
-    sprintf(cadena, "%03d %03d %03d", sd.left, sd.center, sd.right);
+    sprintf(cadena, "V %03d %03d %03d", sd.left, sd.center, sd.right);
     halLcdPrintLine(cadena, LINE_SPEED, NORMAL_TEXT);
 
-    sprintf(cadena, "%01d   %01d   %01d", sd.left > threshold, sd.center > threshold, sd.right > threshold);
-    halLcdPrintLine(cadena, LINE_OBSTACLE, NORMAL_TEXT);
+    if (wall == LEFT) {
+        sprintf(cadena, "T %03d %03d %03d", threshold_wall, threshold_front, threshold_wallnt);
+        halLcdPrintLine(cadena, LINE_THRESHOLD, NORMAL_TEXT);
+        sprintf(cadena, "O %01d   %01d   %01d", sd.left > threshold_wall, sd.center > threshold_front, sd.right > threshold_wallnt);
+        halLcdPrintLine(cadena, LINE_OBSTACLE, NORMAL_TEXT);
+    } else {
+        sprintf(cadena, "T %03d %03d %03d", threshold_wallnt, threshold_front, threshold_wall);
+        halLcdPrintLine(cadena, LINE_THRESHOLD, NORMAL_TEXT);
+        sprintf(cadena, "O %01d   %01d   %01d", sd.left > threshold_wallnt, sd.center > threshold_front, sd.right > threshold_wall);
+        halLcdPrintLine(cadena, LINE_OBSTACLE, NORMAL_TEXT);
+    }
 
 }
 
 void callibrate_sensors(void) {
     sd = read_obstacle_distance();
 
-    if (sd.left > sd.right) { // Est· m·s cerca del muro izdo
-        wall = LEFT;
-        threshold = sd.left;
+    if (wall == LEFT) { // Est· m·s cerca del muro izdo
+        threshold_wall = sd.left;
+        threshold_front = sd.center;
+        threshold_wallnt = sd.right;
     } else {
-        wall = RIGHT;
-        threshold = sd.right;
+        threshold_wall = sd.right;
+        threshold_front = sd.center;
+        threshold_wallnt = sd.left;
     }
 
-    sprintf(cadena, "Threshold: %03d", threshold);
-    halLcdPrintLine(cadena, LINE_THRESHOLD, NORMAL_TEXT);
+    sprintf(cadena, "W %c", threshold_wall, wall==LEFT ? 'L' : 'R');
+    halLcdPrintLine(cadena, LINE_WALL, NORMAL_TEXT);
 
 }
 
@@ -142,18 +162,20 @@ bool rotate_wallnt(bool direction, uint16_t speed) {
 }
 
 void main(void)
-    {
+{
 
     // Hacer que las cosas funcionen
     inits();
 
-    set_obstacle_threshold(threshold);
+    // unused
+    //set_obstacle_threshold(threshold);
 
     // Initial state
     write_led(LEFT, 0);
     write_led(RIGHT, 0);
     rotate_left(FORWARD, 0);
     rotate_right(FORWARD, 0);
+    halLcdClearScreen(0/*?*/);
 
     for (;;) {
 
@@ -193,7 +215,7 @@ void main(void)
 
             uint16_t speed_tmp;
 
-            diff = sensor_wall - threshold;
+            diff = sensor_wall - threshold_wall;
 
             speed_wall = speed + diff;
 
@@ -221,6 +243,11 @@ void main(void)
         case COLLISION: // gira en sentido can√≥nico (wall -> cw)
             halLcdPrintLine("COLLISION      ", LINE_STATE, NORMAL_TEXT);
 
+//            diff = sensor_front - threshold_front;
+//
+//            speed_wall = speed + (diff>0?diff:-diff);
+
+
             rotate_left(FORWARD, wall == LEFT ? speed : 0);
             rotate_right(FORWARD, wall == LEFT ? 0 : speed);
 
@@ -239,35 +266,72 @@ void main(void)
             break;
 
         case DEAD_END: // callej√≥n sin salida
-            halLcdPrintLine("DEAD_END       ", LINE_STATE, NORMAL_TEXT);
+            halLcdPrintLine("DEAD_END 1     ", LINE_STATE, NORMAL_TEXT);
 
-            diff = sensor_wall - sensor_wallnt;
+            Note n;
+            n.duration = 5;
+            n.pitch = SCALE*3 + MI;
 
-            speed_wall = speed - diff;
-            if (speed_wall < SPEED_MIN) speed_wall = SPEED_MIN;
-            if (speed_wall > SPEED_MAX) speed_wall = SPEED_MAX;
-
-            speed_wallnt = speed + diff;
-            if (speed_wallnt < SPEED_MIN) speed_wallnt = SPEED_MIN;
-            if (speed_wallnt > SPEED_MAX) speed_wallnt = SPEED_MAX;
-
-            rotate_left(BACKWARD, wall == RIGHT ? speed_wall : speed_wallnt); // TODO comprobar si es wallnt : wall o al rev√©s
-            rotate_right(BACKWARD, wall == RIGHT ? speed_wallnt : speed_wall);
-
+            set_sec_timer_interrupt(1);
+            reset_sec_time();
+            play_note(n);
+            uint8_t counter = 0;
             do { // Tira hacia atr·s "ajustando" la direcciÛn para no chocar contra los muros
+                if (has_passed_sec(1000)) {
+                    reset_sec_time();
+                    stop_sound();
+                    play_note(n);
+                }
                 read_sensors();
-            } while (obstacle_wall && obstacle_wallnt);
+
+                diff = sensor_wall - sensor_wallnt;
+
+                speed_wall = speed - diff;
+                if (speed_wall < SPEED_MIN) speed_wall = SPEED_MIN;
+                if (speed_wall > SPEED_MAX) speed_wall = SPEED_MAX;
+
+                speed_wallnt = speed + diff;
+                if (speed_wallnt < SPEED_MIN) speed_wallnt = SPEED_MIN;
+                if (speed_wallnt > SPEED_MAX) speed_wallnt = SPEED_MAX;
+
+                rotate_left(BACKWARD, wall == RIGHT ? speed_wall : speed_wallnt); // TODO comprobar si es wallnt : wall o al rev√©s
+                rotate_right(BACKWARD, wall == RIGHT ? speed_wallnt : speed_wall);
+
+                if (!(obstacle_wall || obstacle_wallnt)) counter++;
+
+            } while (counter < 1);
 
             rotate_left(wall == LEFT ? FORWARD : BACKWARD, speed);
             rotate_right(wall == LEFT ? BACKWARD : FORWARD, speed);
 
+            halLcdPrintLine("DEAD_END 2     ", LINE_STATE, NORMAL_TEXT);
+
+            reset_sec_time();
+            play_note(n);
             do { // Giramos en sentido canÛnico hasta estar "paralelo" al deadend
+                if (has_passed_sec(1000)) {
+                    reset_sec_time();
+                    stop_sound();
+                    play_note(n);
+                }
                 read_sensors();
             } while (!obstacle_wall);
 
+            halLcdPrintLine("DEAD_END 3     ", LINE_STATE, NORMAL_TEXT);
+
+            reset_sec_time();
+            play_note(n);
+            counter = 0;
             do { // Seguimos girando para compensar que a˙n no estÈ paralelo
+                if (has_passed_sec(1000)) {
+                    reset_sec_time();
+                    stop_sound();
+                    play_note(n);
+                    counter++;
+                }
                 read_sensors();
-            } while (obstacle_wall);
+            } while (obstacle_wall || counter < 1);
+
 
             break;
         }
@@ -289,3 +353,21 @@ void s2_pressed(void) {
 void s1_pressed(void) {
     stop_g = !stop_g;
 }
+
+void up_pressed(void) {
+
+}
+
+void down_pressed(void) {
+
+}
+
+void left_pressed(void) {
+    wall = RIGHT; // god left
+}
+
+void right_pressed(void) {
+    wall = LEFT;
+}
+
+void center_pressed(void) {}
