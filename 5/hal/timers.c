@@ -142,8 +142,8 @@ void TA0_0_IRQHandler(void) {
 
 void TA1_0_IRQHandler(void) {
     set_sec_timer_interrupt(0); // Desactivamos interrupciones
-
     time_sec_g++;
+    on_music_tick();
 
     TA1CCTL0 &= ~CCIFG; // Limpiar flag
     set_sec_timer_interrupt(1);  // Reactivamos interrupciones

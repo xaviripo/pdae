@@ -20,7 +20,11 @@
 #define READ_DATA 0x02
 #define WRITE_DATA 0x03
 
+/******************************************************************************/
+// GLOBALES
+/******************************************************************************/
 
+sensor_distance cached_sd_g;
 
 /******************************************************************************/
 // READ y WRITE
@@ -201,20 +205,15 @@ uint8_t read_obstacle(void) {
 }
 
 sensor_distance read_obstacle_distance(void) {
-
-    sensor_distance r;
-
     // Ha ido mal
     if(!read(100, 0x1A, 3)) {
-        return r;
+        return cached_sd_g; // todo comprobar si es que ha ido mal!
     }
 
-    r.left = get_status().status[5];
-    r.center = get_status().status[6];
-    r.right = get_status().status[7];
-
-    return r;
-
+    cached_sd_g.left = get_status().status[5];
+    cached_sd_g.center = get_status().status[6];
+    cached_sd_g.right = get_status().status[7];
+    return cached_sd_g;
 }
 
 /*

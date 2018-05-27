@@ -8,13 +8,13 @@ typedef struct Note {
 	uint8_t duration; //??
 } Note;
 
-#define LA 0
-#define SI 2
-#define DO 3
-#define RE 5
-#define MI 7
-#define FA 8
-#define SOL 10
+#define A 0
+#define B 2
+#define C 3
+#define D 5
+#define E 7
+#define F 8
+#define G 10
 #define SHARP 1
 #define SCALE 12
 /*
