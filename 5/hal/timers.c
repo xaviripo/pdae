@@ -36,19 +36,19 @@ void init_timers_0(void) {
 
     // Seteamos la constante de tiempo m�ximo del contador
     // Queremos que la unidad b�sica sea 10^-3 segundos
-    // Lo ponemos a 30 ya que f/1000/8 = 24*10^6/1000/8 = 3000
+    // Lo ponemos a 3000 ya que f/1000/8 = 24*10^6/1000/8 = 3000
     TA0CCR0 = 3000;
 
     TA1CTL =
-            TASSEL__SMCLK + // clock ACLK
+            TASSEL__ACLK + // clock ACLK
             MC__UP +       // modo UP
             ID__8;         // /8
 
-    TA1CCTL0 =
-            CCIE; // activar int clock
+    TA1CCTL0 &=
+            ~CCIE; // activar int clock
 
-    // Valor inicial, que cambiará según el `tempo`
-    TA1CCR0 = 3000; // todo arreglar esto
+    // Valor inicial, 0.1 s: 2^15/10/8=410
+    TA1CCR0 = 410; // todo arreglar esto
 }
 
 

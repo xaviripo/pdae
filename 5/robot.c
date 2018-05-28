@@ -182,6 +182,7 @@ bool turn(rot_t direction, uint16_t speed) {
     default:
         break;
     }
+    return 1;
 }
 
 /**

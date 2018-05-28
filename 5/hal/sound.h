@@ -8,13 +8,13 @@ typedef struct Note {
 	uint8_t duration; //??
 } Note;
 
-#define A 0
-#define B 2
-#define C 3
-#define D 5
-#define E 7
-#define F 8
-#define G 10
+#define A_ 0
+#define B_ 2
+#define C_ 3
+#define D_ 5
+#define E_ 7
+#define F_ 8
+#define G_ 10
 #define SHARP 1
 #define SCALE 12
 /*
@@ -24,7 +24,11 @@ typedef struct Note {
 
 void play_magic_melody(uint8_t times);
 
-void play_note(Note note);
+bool play_note(Note note);
 void stop_sound();
+void play_smb();
+void play_tloz();
+void play_scale();
+void play_next_note();
 
 #endif /* SOUND_H_ */

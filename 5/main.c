@@ -25,7 +25,8 @@ typedef enum {
     FOLLOW,                 // se mantiene a distancia cte de la pared
     COLLISION,        // gira en sentido canÃ³nico (left wall -> cw)
     LOSS,             // gira en sentido no canÃ³nico (left wall -> ccw)
-    DEAD_END          // retrocede en marcha atrÃ¡s pq no puede girar
+    DEAD_END,          // retrocede en marcha atrÃ¡s pq no puede girar
+    MUSIC
 } state_t;
 
 #define LINE_STATE 0
@@ -42,6 +43,7 @@ typedef enum {
 /******************************************************************************/
 uint8_t stop_g = 1;
 uint8_t callibrate_g = 0;
+uint8_t play_music_g = 0;
 
 // Para almacenar el input de los sensores
 sensor_distance sd;
@@ -180,21 +182,31 @@ void main(void)
     for (;;) {
 
         // Leemos lo que hay fuera
-        read_sensors();
 
-        if (callibrate_g) {
-            state = CALLIBRATE;
-        } else if (stop_g) {
-            state = STOP;
-        } else if (obstacle_wall && obstacle_front && obstacle_wallnt) {
-            state = DEAD_END;
-        } else if (!obstacle_wall && !obstacle_front) {
-            state = LOSS;
-        } else if (obstacle_wall && !obstacle_front) {
-            state = FOLLOW;
+
+        if (play_music_g) {
+            state = MUSIC;
         } else {
-            state = COLLISION;
+            read_sensors();
+
+            if (callibrate_g) {
+               state = CALLIBRATE;
+            } else if (stop_g) {
+               state = STOP;
+            } else if (obstacle_wall && obstacle_front && obstacle_wallnt) {
+               state = COLLISION;
+               //state = DEAD_END;
+            } else if (!obstacle_wall && !obstacle_front) {
+               state = LOSS;
+            } else if (obstacle_wall && !obstacle_front) {
+               state = FOLLOW;
+            } else {
+               state = COLLISION;
+            }
         }
+
+
+
 
         // Actuamos segÃºn el estado
         switch (state) {
@@ -213,13 +225,11 @@ void main(void)
         case FOLLOW: // se mantiene a distancia cte de la pared
             halLcdPrintLine("FOLLOW         ", LINE_STATE, NORMAL_TEXT);
 
-            uint16_t speed_tmp;
-
             diff = sensor_wall - threshold_wall;
 
-            speed_wall = speed + diff;
+            speed_wall = speed + diff*2;
 
-            speed_wallnt = speed - diff;
+            speed_wallnt = speed - diff*2;
 
             if (speed_wall < 0) {
                 rotate_wall(BACKWARD, -speed_wall);
@@ -243,9 +253,9 @@ void main(void)
         case COLLISION: // gira en sentido canÃ³nico (wall -> cw)
             halLcdPrintLine("COLLISION      ", LINE_STATE, NORMAL_TEXT);
 
-//            diff = sensor_front - threshold_front;
-//
-//            speed_wall = speed + (diff>0?diff:-diff);
+            diff = sensor_front - threshold_front;
+
+            speed_wall = speed + (diff>0?diff:-diff);
 
 
             rotate_left(FORWARD, wall == LEFT ? speed : 0);
@@ -265,22 +275,26 @@ void main(void)
 
             break;
 
+        case MUSIC:
+            halLcdPrintLine("MUSIC          ", LINE_STATE, NORMAL_TEXT);
+            play_next_note();
+            break;
         case DEAD_END: // callejÃ³n sin salida
             halLcdPrintLine("DEAD_END 1     ", LINE_STATE, NORMAL_TEXT);
 
             Note n;
             n.duration = 5;
-            n.pitch = SCALE*3 + MI;
+            n.pitch = SCALE*3 + E_;
 
             set_sec_timer_interrupt(1);
             reset_sec_time();
-            play_note(n);
+            //play_note(n);
             uint8_t counter = 0;
             do { // Tira hacia atrás "ajustando" la dirección para no chocar contra los muros
                 if (has_passed_sec(1000)) {
                     reset_sec_time();
                     stop_sound();
-                    play_note(n);
+                    //play_note(n);
                 }
                 read_sensors();
 
@@ -307,12 +321,12 @@ void main(void)
             halLcdPrintLine("DEAD_END 2     ", LINE_STATE, NORMAL_TEXT);
 
             reset_sec_time();
-            play_note(n);
+            //play_note(n);
             do { // Giramos en sentido canónico hasta estar "paralelo" al deadend
                 if (has_passed_sec(1000)) {
                     reset_sec_time();
                     stop_sound();
-                    play_note(n);
+                    //play_note(n);
                 }
                 read_sensors();
             } while (!obstacle_wall);
@@ -320,13 +334,13 @@ void main(void)
             halLcdPrintLine("DEAD_END 3     ", LINE_STATE, NORMAL_TEXT);
 
             reset_sec_time();
-            play_note(n);
+           // play_note(n);
             counter = 0;
             do { // Seguimos girando para compensar que aún no esté paralelo
                 if (has_passed_sec(1000)) {
                     reset_sec_time();
                     stop_sound();
-                    play_note(n);
+                    //play_note(n);
                     counter++;
                 }
                 read_sensors();
@@ -363,11 +377,18 @@ void down_pressed(void) {
 }
 
 void left_pressed(void) {
-    wall = RIGHT; // god left
+    wall = LEFT; // god left
 }
 
 void right_pressed(void) {
-    wall = LEFT;
+    wall = RIGHT;
 }
 
-void center_pressed(void) {}
+void center_pressed(void) {
+    play_music_g = !play_music_g;
+    if (play_music_g) {
+        play_tloz();
+    } else {
+        stop_sound();
+    }
+}
