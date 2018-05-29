@@ -4,11 +4,11 @@
 
 #include <math.h>
 
-#include "robot.h"
+#include "robot/robot.h"
 #include "hal/timers.h"
 #include "hal/controls.h"
 #include "hal/communication.h"
-#include "hal/sound.h"
+#include "robot/sound.h"
 #include "msp.h"
 #include "lib_PAE2.h"
 

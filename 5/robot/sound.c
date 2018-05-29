@@ -1,8 +1,8 @@
 #include "sound.h"
 
-#include "communication.h"
-#include "timers.h"
-#include "../robot.h"
+#include "../hal/communication.h"
+#include "../hal/timers.h"
+#include "robot.h"
 
 Note *notes_g;
 uint8_t notes_len_g;
