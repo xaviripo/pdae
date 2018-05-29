@@ -49,7 +49,7 @@ typedef struct sensor_distance {
     uint8_t left;
     uint8_t center;
     uint8_t right;
-} sensor_distance;
+} sensor_distance_t;
 
 
 
@@ -95,7 +95,7 @@ bool turn(rot_t direction, uint16_t speed);
  */
 uint8_t read_obstacle(void);
 
-sensor_distance read_obstacle_distance(void);
+sensor_distance_t read_obstacle_distance(void);
 
 /*
  * Configura el parámetro de distancia a la que se detectan obstáculos.

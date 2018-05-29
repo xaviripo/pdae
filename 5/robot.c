@@ -24,7 +24,7 @@
 // GLOBALES
 /******************************************************************************/
 
-sensor_distance cached_sd_g;
+sensor_distance_t cached_sd_g;
 
 /******************************************************************************/
 // READ y WRITE
@@ -205,7 +205,7 @@ uint8_t read_obstacle(void) {
 
 }
 
-sensor_distance read_obstacle_distance(void) {
+sensor_distance_t read_obstacle_distance(void) {
     // Ha ido mal
     if(!read(100, 0x1A, 3)) {
         return cached_sd_g; // todo comprobar si es que ha ido mal!
@@ -236,3 +236,5 @@ uint8_t read_claps(void) {
     read(100, 0x25, 1);
     return get_status().status[5];
 }
+
+
