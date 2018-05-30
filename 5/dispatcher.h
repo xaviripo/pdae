@@ -9,9 +9,9 @@
 #define DISPATCHER_H_
 
 #include <stdint.h>
-#include "RobotStates/RobotState.h"
+#include "states/RobotState.h"
 
-void setState(RobotState *s);
+void set_state(RobotState *s);
 void set_thresholds(uint8_t left, uint8_t front, uint8_t right);
 uint8_t get_thr_left();
 uint8_t get_thr_front();

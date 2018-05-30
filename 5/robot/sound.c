@@ -22,47 +22,128 @@ Note smb[] = {
 };
 
 Note zelda[] = {
-              {A_+2*SCALE,10},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,4},
-              {G_+SCALE  ,2},
-              {A_+2*SCALE,6},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,4},
-              {G_+SCALE  ,2},
-              {A_+2*SCALE,6},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,2},
-              {A_+2*SCALE,2},
-              {E_+SCALE,1},
-              {E_+SCALE,1},
-              {E_+SCALE,2},
-              {E_+SCALE,1},
-              {E_+SCALE,1},
-              {E_+SCALE,2},
-              {E_+SCALE,1},
-              {E_+SCALE,1},
-              {E_+SCALE,2},
-              {E_+SCALE,2}
+      {A_,10},
+      {A_,2},
+      {A_,2},
+      {A_,2},
+      {A_,2},
+      {A_,4},
+      {G_-SCALE,2},
+      {A_,6},
+      {A_,2},
+      {A_,2},
+      {A_,2},
+      {A_,2},
+      {A_,4},
+      {G_-SCALE,2},
+      {A_,6},
+      {A_,2},
+      {A_,2},
+      {A_,2},
+      {A_,2},
+      {A_,2},
+      {E_-SCALE,1},
+      {E_-SCALE,1},
+      {E_-SCALE,2},
+      {E_-SCALE,1},
+      {E_-SCALE,1},
+      {E_-SCALE,2},
+      {E_-SCALE,1},
+      {E_-SCALE,1},
+      {E_-SCALE,2},
+      {E_-SCALE,2}
 };
 
 Note escala[] = {
-                  {C_,10},
-                  {D_,10},
-                  {E_,10},
-                  {F_,10},
-                  {G_,10},
-                  {A_+SCALE,10},
-                  {B_+SCALE,10},
+      {C_,10},
+      {D_,10},
+      {E_,10},
+      {F_,10},
+      {G_,10},
+      {A_+SCALE,10},
+      {B_+SCALE,10},
 };
+
+Note megalovania[] = {
+      {D_,SEMI},
+      {D_,SEMI},
+      {D_+SCALE,CORC},
+      {A_+SCALE,CORC+SEMI},
+      {G_+SHARP,CORC},
+      {G_,CORC},
+      {F_,CORC},
+      {D_,SEMI},
+      {F_,SEMI},
+      {G_,SEMI},
+
+      {C_,SEMI},
+      {C_,SEMI},
+      {D_+SCALE,CORC},
+      {A_+SCALE,CORC+SEMI},
+      {G_+SHARP,CORC},
+      {G_,CORC},
+      {F_,CORC},
+      {D_,SEMI},
+      {F_,SEMI},
+      {G_,SEMI},
+
+      {B_,SEMI},
+      {B_,SEMI},
+      {D_+SCALE,CORC},
+      {A_,CORC+SEMI},
+      {G_+SHARP,CORC},
+      {G_,CORC},
+      {F_,CORC},
+      {D_,SEMI},
+      {F_,SEMI},
+      {G_,SEMI},
+
+      {D_,SEMI},
+      {D_,SEMI},
+      {D_+SCALE,CORC},
+      {A_+SCALE,CORC+SEMI},
+      {G_+SHARP,CORC},
+      {G_,CORC},
+      {F_,CORC},
+      {D_,SEMI},
+      {F_,SEMI},
+      {G_,SEMI},
+
+      {C_,SEMI},
+      {C_,SEMI},
+      {D_+SCALE,CORC},
+      {A_+SCALE,CORC+SEMI},
+      {G_+SHARP,CORC},
+      {G_,CORC},
+      {F_,CORC},
+      {D_,SEMI},
+      {F_,SEMI},
+      {G_,SEMI},
+
+      {B_,SEMI},
+      {B_,SEMI},
+      {D_+SCALE,CORC},
+      {A_,CORC+SEMI},
+      {G_+SHARP,CORC},
+      {G_,CORC},
+      {F_,CORC},
+      {D_,SEMI},
+      {F_,SEMI},
+      {G_,SEMI},
+};
+
+Note wii[] = {
+              {F_+SHARP,NEGR},
+              {A_+SCALE,CORC},
+              {C_+SHARP+SCALE,NEGR},
+              {A_+SCALE,NEGR},
+              {F_+SHARP,CORC},
+
+              {D_,CORC},
+              {D_,CORC},
+              {D_,BLAN},
+};
+
 /**
  * Sets the "tempo" of the sounds to last duration ms
  * @param duration - duration in ms
@@ -107,6 +188,18 @@ bool play_note(Note note) {
     return (get_status().checksum_correct && !get_status().timeout);
 }
 
+bool cut_note() {
+    uint8_t module_id = 100;
+    uint8_t parameter_length = 2;
+    uint8_t parameters[] = {
+        0x29,
+        0
+    };
+    tx_instruction(module_id, parameter_length, WRITE_DATA, parameters);
+    rx_status();
+    return (get_status().checksum_correct && !get_status().timeout);
+}
+
 void play_next_note() {
     if(can_play_g) {
         can_play_g = !(cut_note() && play_note(notes_g[note_idx]));
@@ -122,17 +215,7 @@ void stop_sound() {
     set_sec_timer_interrupt(0);
 }
 
-bool cut_note() {
-    uint8_t module_id = 100;
-    uint8_t parameter_length = 2;
-    uint8_t parameters[] = {
-        0x29,
-        0
-    };
-    tx_instruction(module_id, parameter_length, WRITE_DATA, parameters);
-    rx_status();
-    return (get_status().checksum_correct && !get_status().timeout);
-}
+
 
 void play_smb() {
 	set_music(7,smb);
@@ -146,6 +229,14 @@ void play_tloz() {
     set_music(29,zelda);
 }
 
+void play_megalo() {
+    set_music(60,megalovania);
+}
+
+void play_wii() {
+    set_music(8, wii);
+}
+
 void on_music_tick() {
 	if (has_passed_sec(notes_g[note_idx].duration)) {
 	    can_play_g = 1;
@@ -153,4 +244,8 @@ void on_music_tick() {
 		note_idx = (note_idx+1)%notes_len_g;
 		reset_sec_time();
 	}
+}
+
+void Sound__enable(bool flag) {
+    set_sec_timer_interrupt(flag);
 }

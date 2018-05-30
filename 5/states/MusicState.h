@@ -5,11 +5,11 @@
  *      Author: kanales
  */
 
-#ifndef ROBOTSTATES_MUSICSTATE_H_
-#define ROBOTSTATES_MUSICSTATE_H_
+#ifndef STATES_MUSICSTATE_H_
+#define STATES_MUSICSTATE_H_
 
-#include "RobotState.h"
+#include "../states/RobotState.h"
 
-RobotState *MusicState();
+RobotState *MusicState(StateContext* s);
 
-#endif /* ROBOTSTATES_MUSICSTATE_H_ */
+#endif /* STATES_MUSICSTATE_H_ */

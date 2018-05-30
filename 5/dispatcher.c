@@ -5,12 +5,14 @@
 #include "hal/timers.h"
 #include "hal/controls.h"
 #include "hal/communication.h"
+#include "states/MenuState.h"
 
 RobotState *state_g;
+StateContext ctx_g;
 //thresholds
 uint8_t thrleft_g, thrfront_g, thrright_g;
 
-void setState(RobotState *s) {
+void set_state(RobotState *s) {
     state_g->exit();
     state_g = s;
     state_g->init();
@@ -38,31 +40,15 @@ void init(void) {
 
     // Pantalla
     halLcdInit();
-}
 
-void set_thresholds(uint8_t left, uint8_t front, uint8_t right) {
-    thrleft_g = left;
-    thrfront_g = front;
-    thrright_g = right;
-}
-
-uint8_t get_thr_left() {
-    return thrleft_g;
-}
-
-uint8_t get_thr_front() {
-    return thrfront_g;
-}
-
-uint8_t get_thr_right() {
-    return thrright_g;
+    ctx_g.set_state = &set_state;
 }
 
 
 int main() {
     while (1) {
         state_g->update();
-        state_g->draw_screen();
+        if (state_g->screen_changed) state_g->draw_screen();
     }
 
     return 0;

@@ -5,12 +5,12 @@
  *      Author: kanales
  */
 
-#ifndef ROBOTSTATES_CALLIBRATIONSTATE_H_
-#define ROBOTSTATES_CALLIBRATIONSTATE_H_
+#ifndef STATES_CALLIBRATIONSTATE_H_
+#define STATES_CALLIBRATIONSTATE_H_
 
-#include "RobotState.h"
+#include "../states/RobotState.h"
 
-RobotState *CallibrationState();
+RobotState *CallibrationState(StateContext *ctx);
 
 
-#endif /* ROBOTSTATES_CALLIBRATIONSTATE_H_ */
+#endif /* STATES_CALLIBRATIONSTATE_H_ */

@@ -1,11 +1,13 @@
-#include "MovingState.h"
-
+#include <states/MenuState.h>
+#include <states/MovingState.h>
 #include "MenuState.h"
 #include <stdio.h>
 #include "robot/robot.h"
-#include "dispatcher.h"
 
-#define LINE_STATE 0
+#include "string.h"
+
+#define TITLE 0
+#define LINE_STATE 1
 #define LINE_SPEED 2
 #define LINE_OBSTACLE 3
 #define LINE_THRESHOLD 4
@@ -26,6 +28,7 @@ typedef enum {
 sensor_distance_t sd_g;
 bool stop_g; // flag for when the robot is paused
 RobotState movingState_g; // singleton
+StateContext *ctx_g;
 
 uint8_t sensor_wall, sensor_front, sensor_wallnt; // valor de los sensores
 uint8_t threshold_wall, threshold_front, threshold_wallnt;
@@ -34,7 +37,9 @@ bool obstacle_wall, obstacle_front, obstacle_wallnt; // flag: true => hay obstac
 
 // Pared a reseguir (izda o dcha)
 side_t wall;
+state_t prev_state;
 char cadena[16]; // buffer used to write on screen;
+char cadena_state[16];
 
 void read_sensors(void) {
     sd_g = read_obstacle_distance();
@@ -46,6 +51,8 @@ void read_sensors(void) {
     obstacle_wall = sensor_wall > threshold_wall;
     obstacle_front = sensor_front > threshold_front;
     obstacle_wallnt = sensor_wallnt > threshold_wallnt;
+
+    movingState_g.screen_changed = 1; // update values on screen
 }
 
 bool rotate_wall(bool direction, uint16_t speed) {
@@ -78,17 +85,17 @@ void handle_state(state_t s) {
     int16_t diff;
     int32_t speed_wall, speed_wallnt;
 
-
+    if (s != prev_state) movingState_g.screen_changed = 1;
     // Actuamos según el estado
        switch (s) {
 
        case STOP: // no hace nada
-           halLcdPrintLine("STOP           ", LINE_STATE, NORMAL_TEXT);
+           strcpy(cadena_state,"STOP           ");
            rotate_left(FORWARD, 0);
            rotate_right(FORWARD, 0);
            break;
        case FOLLOW: // se mantiene a distancia cte de la pared
-           halLcdPrintLine("FOLLOW         ", LINE_STATE, NORMAL_TEXT);
+           strcpy(cadena_state,"FOLLOW         ");
 
            diff = sensor_wall - threshold_wall;
 
@@ -109,9 +116,6 @@ void handle_state(state_t s) {
            }
            //rotate_left(FORWARD, 0);
            //rotate_right(FORWARD, 0);
-
-           sprintf(cadena, "diff: %03d", diff);
-           halLcdPrintLine(cadena, LINE_DEBUG, NORMAL_TEXT);
 
            break;
 
@@ -144,11 +148,17 @@ void MovingState__init () {
     handle_state(FOLLOW);
 
     // set thresholds
-    threshold_wall = get_thr_left();
-    threshold_front = get_thr_front();
-    threshold_wallnt = get_thr_right();
+    threshold_wall = ctx_g->thr_left;
+    threshold_front = ctx_g->thr_front;
+    threshold_wallnt = ctx_g->thr_right;
+
+    movingState_g.screen_changed = 1;
 }
-void MovingState__exit () {}
+void MovingState__exit () {
+    // stop motors
+    rotate_left(FORWARD, 0);
+    rotate_right(FORWARD, 0);
+}
 
 // update engine (se llama en el bucle principal)
 void MovingState__update() {
@@ -158,6 +168,8 @@ void MovingState__update() {
 // screen
 void MovingState__draw_screen () {
     // sensor values
+    halLcdPrintLine("MOVING       ", TITLE, 0);
+
     sprintf(cadena, "V %03d %03d %03d", sd_g.left, sd_g.center, sd_g.right);
     halLcdPrintLine("  LFT CTR RGT", LINE_SPEED-1, NORMAL_TEXT);
     halLcdPrintLine(cadena, LINE_SPEED, NORMAL_TEXT);
@@ -169,12 +181,18 @@ void MovingState__draw_screen () {
         sprintf(cadena, "O %01d   %01d   %01d", sd_g.left > threshold_wallnt, sd_g.center > threshold_front, sd_g.right > threshold_wall);
         halLcdPrintLine(cadena, LINE_OBSTACLE, NORMAL_TEXT);
     }
+
+    halLcdPrintLine(cadena, LINE_DEBUG, NORMAL_TEXT);
+
+    halLcdPrintLine(cadena_state, LINE_STATE, NORMAL_TEXT);
+
+    movingState_g.screen_changed = 0;
 }
 
 // controls
 void MovingState__s2_pressed () {
     // S2 -> RETURN TO MENU
-    setState(MenuState());
+    ctx_g->set_state(MenuState(ctx_g));
 }
 void MovingState__s1_pressed () {
     // S1 -> PAUSE
@@ -187,18 +205,20 @@ void MovingState__down_pressed () {}
 void MovingState__left_pressed () {
     // Following LEFT wall
     wall = LEFT;
-    threshold_wall   = get_thr_left();
-    threshold_wallnt = get_thr_right();
+    threshold_wall   = ctx_g->thr_left;
+    threshold_wallnt = ctx_g->thr_right;
+    movingState_g.screen_changed = 1;
 }
 void MovingState__right_pressed () {
     // Following RIGHT wall
     wall = RIGHT;
-    threshold_wallnt = get_thr_left();
-    threshold_wall   = get_thr_right();
+    threshold_wallnt = ctx_g->thr_left;
+    threshold_wall   = ctx_g->thr_right;
+    movingState_g.screen_changed = 1;
 }
 void MovingState__center_pressed () {}
 
-RobotState *MovingState() {
+RobotState *MovingState(StateContext *ctx) {
     movingState_g.init = &MovingState__init;
     movingState_g.exit = &MovingState__exit;
     movingState_g.update = &MovingState__update;
@@ -211,6 +231,8 @@ RobotState *MovingState() {
     movingState_g.right_pressed = &MovingState__right_pressed;
     movingState_g.left_pressed = &MovingState__left_pressed;
     movingState_g.center_pressed = &MovingState__center_pressed;
+
+    ctx_g = ctx;
     return &movingState_g;
 }
 

@@ -185,6 +185,10 @@ bool turn(rot_t direction, uint16_t speed) {
     return 1;
 }
 
+bool stop_movement() {
+    return rotate_left(FORWARD,0) && rotate_right(FORWARD,0);
+}
+
 /**
  * Lee si hay obstáculos enfrente del robot.
  * @return Uno o varios de los siguientes:

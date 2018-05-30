@@ -5,11 +5,11 @@
  *      Author: kanales
  */
 
-#ifndef ROBOTSTATES_MOVINGSTATE_H_
-#define ROBOTSTATES_MOVINGSTATE_H_
+#ifndef STATES_MOVINGSTATE_H_
+#define STATES_MOVINGSTATE_H_
 
-#include "RobotState.h"
+#include "../states/RobotState.h"
 
-RobotState *MovingState();
+RobotState *MovingState(StateContext *ctx);
 
-#endif /* ROBOTSTATES_MOVINGSTATE_H_ */
+#endif /* STATES_MOVINGSTATE_H_ */

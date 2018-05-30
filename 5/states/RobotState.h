@@ -1,6 +1,8 @@
 #ifndef ROBOTSTATE_H_
 #define ROBOTSTATE_H_
 
+#include "../common.h"
+
 typedef struct RobotState
 {
 	void (*init) ();
@@ -11,6 +13,7 @@ typedef struct RobotState
 
 	// screen
 	void (*draw_screen) ();
+	bool screen_changed;
 
 	// controls
 	void (*s2_pressed) ();
@@ -21,6 +24,14 @@ typedef struct RobotState
 	void (*right_pressed) ();
 	void (*center_pressed) ();
 } RobotState;
+
+typedef struct StateContext {
+    void (*set_state) (RobotState*);
+    // callibration
+    uint8_t thr_left;
+    uint8_t thr_front;
+    uint8_t thr_right;
+} StateContext;
 
 void RobotState__set_defaults(RobotState* r);
 
