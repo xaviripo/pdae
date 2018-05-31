@@ -10,7 +10,7 @@
 
 #include "../states/RobotState.h"
 
-RobotState *CallibrationState(StateContext *ctx);
+RobotState *CallibrationState();
 
 
 #endif /* STATES_CALLIBRATIONSTATE_H_ */

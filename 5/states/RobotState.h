@@ -26,7 +26,6 @@ typedef struct RobotState
 } RobotState;
 
 typedef struct StateContext {
-    void (*set_state) (RobotState*);
     // callibration
     uint8_t thr_left;
     uint8_t thr_front;

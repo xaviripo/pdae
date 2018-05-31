@@ -17,5 +17,9 @@ uint8_t get_thr_left();
 uint8_t get_thr_front();
 uint8_t get_thr_right();
 
+void set_thr_left(uint8_t value);
+void set_thr_front(uint8_t value);
+void set_thr_right(uint8_t value);
+
 
 #endif /* DISPATCHER_H_ */

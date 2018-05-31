@@ -10,6 +10,6 @@
 
 #include "../states/RobotState.h"
 
-RobotState *MusicState(StateContext* s);
+RobotState *MusicState();
 
 #endif /* STATES_MUSICSTATE_H_ */

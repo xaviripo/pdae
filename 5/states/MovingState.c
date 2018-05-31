@@ -2,6 +2,8 @@
 #include <states/MovingState.h>
 #include "MenuState.h"
 #include <stdio.h>
+
+#include "../dispatcher.h"
 #include "robot/robot.h"
 
 #include "string.h"
@@ -28,7 +30,6 @@ typedef enum {
 sensor_distance_t sd_g;
 bool stop_g; // flag for when the robot is paused
 RobotState movingState_g; // singleton
-StateContext *ctx_g;
 
 uint8_t sensor_wall, sensor_front, sensor_wallnt; // valor de los sensores
 uint8_t threshold_wall, threshold_front, threshold_wallnt;
@@ -145,12 +146,13 @@ void handle_state(state_t s) {
 
 void MovingState__init () {
     wall = LEFT; // arbitrario
-    handle_state(FOLLOW);
 
     // set thresholds
-    threshold_wall = ctx_g->thr_left;
-    threshold_front = ctx_g->thr_front;
-    threshold_wallnt = ctx_g->thr_right;
+    threshold_wall = get_thr_left();
+    threshold_front = get_thr_front();
+    threshold_wallnt = get_thr_right();
+
+    set_comm_timer_interrupt(1);
 
     movingState_g.screen_changed = 1;
 }
@@ -192,11 +194,13 @@ void MovingState__draw_screen () {
 // controls
 void MovingState__s2_pressed () {
     // S2 -> RETURN TO MENU
-    ctx_g->set_state(MenuState(ctx_g));
+    //ctx_g->set_state(MenuState(ctx_g));
+    set_state(MenuState());
 }
 void MovingState__s1_pressed () {
     // S1 -> PAUSE
     stop_g = !stop_g;
+
 
 }
 void MovingState__up_pressed () {}
@@ -205,20 +209,20 @@ void MovingState__down_pressed () {}
 void MovingState__left_pressed () {
     // Following LEFT wall
     wall = LEFT;
-    threshold_wall   = ctx_g->thr_left;
-    threshold_wallnt = ctx_g->thr_right;
+    threshold_wall   = get_thr_left();
+    threshold_wallnt = get_thr_right();
     movingState_g.screen_changed = 1;
 }
 void MovingState__right_pressed () {
     // Following RIGHT wall
     wall = RIGHT;
-    threshold_wallnt = ctx_g->thr_left;
-    threshold_wall   = ctx_g->thr_right;
+    threshold_wallnt = get_thr_left();
+    threshold_wall   = get_thr_right();
     movingState_g.screen_changed = 1;
 }
 void MovingState__center_pressed () {}
 
-RobotState *MovingState(StateContext *ctx) {
+RobotState *MovingState() {
     movingState_g.init = &MovingState__init;
     movingState_g.exit = &MovingState__exit;
     movingState_g.update = &MovingState__update;
@@ -232,7 +236,6 @@ RobotState *MovingState(StateContext *ctx) {
     movingState_g.left_pressed = &MovingState__left_pressed;
     movingState_g.center_pressed = &MovingState__center_pressed;
 
-    ctx_g = ctx;
     return &movingState_g;
 }
 

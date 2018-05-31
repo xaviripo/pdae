@@ -10,6 +10,6 @@
 
 #include "../states/RobotState.h"
 
-RobotState *MovingState(StateContext *ctx);
+RobotState *MovingState();
 
 #endif /* STATES_MOVINGSTATE_H_ */

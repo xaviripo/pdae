@@ -3,6 +3,6 @@
 
 #include "../states/RobotState.h"
 
-RobotState *MenuState(StateContext *ctx);
+RobotState *MenuState();
 
 #endif

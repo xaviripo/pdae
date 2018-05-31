@@ -7,6 +7,8 @@
 #include "hal/communication.h"
 #include "states/MenuState.h"
 
+#define DEFAULT_THR 40
+
 RobotState *state_g;
 StateContext ctx_g;
 //thresholds
@@ -16,7 +18,29 @@ void set_state(RobotState *s) {
     state_g->exit();
     state_g = s;
     state_g->init();
+    halLcdClearScreen(0);
 }
+
+uint8_t get_thr_left() {
+    return ctx_g.thr_left;
+}
+uint8_t get_thr_front() {
+    return ctx_g.thr_front;
+}
+uint8_t get_thr_right() {
+    return ctx_g.thr_right;
+}
+
+void set_thr_left(uint8_t value) {
+    ctx_g.thr_left = value;
+}
+void set_thr_front(uint8_t value) {
+    ctx_g.thr_front = value;
+}
+void set_thr_right(uint8_t value) {
+    ctx_g.thr_right = value;
+}
+
 
 void init(void) {
 
@@ -40,15 +64,23 @@ void init(void) {
 
     // Pantalla
     halLcdInit();
+    halLcdClearScreen(0);
 
-    ctx_g.set_state = &set_state;
+    ctx_g.thr_front = DEFAULT_THR;
+    ctx_g.thr_left = DEFAULT_THR;
+    ctx_g.thr_right = DEFAULT_THR;
 }
 
 
 int main() {
+    init();
+    state_g = MenuState(&ctx_g);
+    state_g->init();
     while (1) {
         state_g->update();
-        if (state_g->screen_changed) state_g->draw_screen();
+        if (state_g->screen_changed) {
+            state_g->draw_screen();
+        }
     }
 
     return 0;

@@ -4,6 +4,7 @@
 #include "MovingState.h"
 #include "CallibrationState.h"
 
+#include "../dispatcher.h"
 #include "../common.h"
 #include "../lib_PAE2.h"
 
@@ -15,15 +16,15 @@
 
 uint8_t pointer; // apunta a una opción
 RobotState menuState_g; // singleton
-StateContext *ctx_g;
 
-char *options[];
+char *options[NOPTIONS];
 
 void MenuState__init () {
     pointer = 0;
     options[CALIBRAR] = "+ CALIBRAR   ";
-    options[MUSICA] = "+ MUSICA     ";
-    options[MOVIMIENTO] = "+  MOVIMIENTO ";
+    options[MUSICA] = "  MUSICA     ";
+    options[MOVIMIENTO] = "  MOVIMIENTO ";
+    menuState_g.screen_changed = 1;
 }
 void MenuState__exit () {}
 
@@ -33,14 +34,14 @@ void MenuState__update() {}
 // screen
 void MenuState__draw_screen () {
   //halLcdPrintLine("             ", TITLE, 0);
-    options[CALIBRAR][0]   = (pointer==CALIBRAR)  ?'+':' ';
-    options[MUSICA][0]     = (pointer==MUSICA)    ?'+':' ';
-    options[MOVIMIENTO][0] = (pointer==MOVIMIENTO)?'+':' ';
+    options[CALIBRAR]   = (pointer==CALIBRAR)  ? "+ CALIBRAR   ": "  CALIBRAR   ";
+    options[MUSICA]     = (pointer==MUSICA)    ?  "+ MUSICA     ": "  MUSICA     ";
+    options[MOVIMIENTO] = (pointer==MOVIMIENTO)?"+ MOVIMIENTO ": "  MOVIMIENTO ";
 
     halLcdPrintLine("MENU         ", TITLE, 0);
-    halLcdPrintLine(options[CALIBRAR], CALIBRAR, 0);
-    halLcdPrintLine(options[MUSICA], MUSICA, 0);
-    halLcdPrintLine(options[MOVIMIENTO], MOVIMIENTO, 0);
+    halLcdPrintLine(options[CALIBRAR], CALIBRAR+3, 0);
+    halLcdPrintLine(options[MUSICA], MUSICA+3, 0);
+    halLcdPrintLine(options[MOVIMIENTO], MOVIMIENTO+3, 0);
 
     menuState_g.screen_changed = 0;
 }
@@ -48,29 +49,36 @@ void MenuState__draw_screen () {
 // controls
 void MenuState__s2_pressed () {}
 void MenuState__s1_pressed () {
+    RobotState *s = &menuState_g;
     switch (pointer) {
     case CALIBRAR:
-        ctx_g->set_state(CallibrationState(ctx_g));
+        s = (CallibrationState());
         break;
     case MOVIMIENTO:
-        ctx_g->set_state(MovingState(ctx_g));
+        s = (MovingState());
         break;
     case MUSICA:
-        ctx_g->set_state(MusicState(ctx_g));
+        s = (MusicState());
         break;
     }
+    set_state(s);
+    //ctx_g->set_state(s);
 }
 void MenuState__up_pressed () {
     pointer = (pointer<1)?0:pointer-1;
+
+    menuState_g.screen_changed = 1;
 }
 void MenuState__down_pressed () {
     pointer = (pointer+1>=NOPTIONS)?pointer:pointer+1;
+
+    menuState_g.screen_changed = 1;
 }
 void MenuState__left_pressed () {}
 void MenuState__right_pressed () {}
 void MenuState__center_pressed () {}
 
-RobotState *MenuState(StateContext *ctx) {
+RobotState *MenuState() {
     menuState_g.init = &MenuState__init;
     menuState_g.exit = &MenuState__exit;
     menuState_g.update = &MenuState__update;
@@ -84,6 +92,5 @@ RobotState *MenuState(StateContext *ctx) {
     menuState_g.left_pressed = &MenuState__left_pressed;
     menuState_g.center_pressed = &MenuState__center_pressed;
 
-    ctx_g = ctx;
     return &menuState_g;
 }
