@@ -20,6 +20,10 @@
 #define READ_DATA 0x02
 #define WRITE_DATA 0x03
 
+#define WHEEL_LEFT 0x03
+#define WHEEL_RIGHT 0x02
+
+
 /******************************************************************************/
 // GLOBALES
 /******************************************************************************/
@@ -101,6 +105,26 @@ bool write_led(bool side, bool on) {
 
 }
 
+bool init_wheels() {
+    //////////////////////////////////////////////////////////////////////////////
+
+    // CW and CCW angle limits to 0 so no max angle
+
+    uint8_t parameters[5];
+
+    parameters[0] = 0x06;
+    parameters[1] = 0;
+    parameters[2] = 0;
+    parameters[3] = 0;
+    parameters[4] = 0;
+
+    if(!(write(WHEEL_RIGHT, 5, parameters) && write(WHEEL_LEFT, 5, parameters))) {
+        return 0;
+    }
+
+    return 1;
+}
+
 /**
  * Rotar una rueda del robot
  * @param wheel_id Id del motor cuya rueda queremos rotar
@@ -119,22 +143,7 @@ bool rotate_wheel(uint8_t wheel_id, bool direction, uint16_t speed) {
     // 1 stopped
     // 2-1023 linear speed
     speed ++;
-    uint8_t parameters[5];
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    // CW and CCW angle limits to 0 so no max angle
-
-
-    parameters[0] = 0x06;
-    parameters[1] = 0;
-    parameters[2] = 0;
-    parameters[3] = 0;
-    parameters[4] = 0;
-
-    if(!write(wheel_id, 5, parameters)) {
-        return 0;
-    }
+    uint8_t parameters[3];
 
     //////////////////////////////////////////////////////////////////////////////
 
@@ -157,7 +166,7 @@ bool rotate_wheel(uint8_t wheel_id, bool direction, uint16_t speed) {
  * @param speed Velocidad. Ver rotate_wheel para ver el dominio.
  */
 bool rotate_left(bool direction, uint16_t speed) {
-    return rotate_wheel(0x03, !direction, speed);
+    return rotate_wheel(WHEEL_LEFT, !direction, speed);
 }
 
 /**
@@ -166,7 +175,7 @@ bool rotate_left(bool direction, uint16_t speed) {
  * @param speed Velocidad. Ver rotate_wheel para ver el dominio.
  */
 bool rotate_right(bool direction, uint16_t speed) {
-    return rotate_wheel(0x02, direction, speed);
+    return rotate_wheel(WHEEL_RIGHT, direction, speed);
 }
 
 bool turn(rot_t direction, uint16_t speed) {

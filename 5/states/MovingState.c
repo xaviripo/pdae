@@ -13,13 +13,12 @@
 #define TITLE 0
 #define LINE_STATE 1
 #define LINE_DIRS 2
-#define LINE_SPEED 3
+#define LINE_SENSORS 3
 #define LINE_OBSTACLE 4
 #define LINE_THRESHOLD 5
-#define LINE_WALL 6
-#define LINE_DEBUG 7
+#define LINE_SPEED 6
 
-#define SPEED 300 // base speed
+#define SPEED_INC 10
 
 // Enum para la máquina de estados del movimiento del robot
 typedef enum {
@@ -28,6 +27,9 @@ typedef enum {
     COLLISION,        // gira en sentido canónico (left wall -> cw)
     LOSS,             // gira en sentido no canónico (left wall -> ccw)
 } state_t;
+
+uint16_t speed_g = 300; // base speed
+bool initialized = 0; // wheels initialized?
 
 // Para almacenar el input de los sensores
 sensor_distance_t sd_g;
@@ -103,9 +105,9 @@ void handle_state(state_t s) {
 
            diff = sensor_wall - threshold_wall;
 
-           speed_wall = SPEED + diff*2;
+           speed_wall = speed_g + diff*2;
 
-           speed_wallnt = SPEED - diff*2;
+           speed_wallnt = speed_g - diff*2;
 
            if (speed_wall < 0) {
                rotate_wall(BACKWARD, -speed_wall);
@@ -126,10 +128,10 @@ void handle_state(state_t s) {
        case COLLISION: // gira en sentido canónico (wall -> cw)
            halLcdPrintLine("COLLISION      ", LINE_STATE, NORMAL_TEXT);
            diff = sensor_front - threshold_front;
-           speed_wall = SPEED + (diff>0?diff:-diff);
+           speed_wall = speed_g + (diff>0?diff:-diff);
 
-           rotate_left(FORWARD, wall == LEFT ? SPEED : 0);
-           rotate_right(FORWARD, wall == LEFT ? 0 : SPEED);
+           rotate_left(FORWARD, wall == LEFT ? speed_g : 0);
+           rotate_right(FORWARD, wall == LEFT ? 0 : speed_g);
 
            do { // Seguimos girando hasta que no se vea NADA delante
                read_sensors();
@@ -140,8 +142,8 @@ void handle_state(state_t s) {
        case LOSS: // gira en sentido no canónico (walln't -> ccw)
            halLcdPrintLine("LOSS           ", LINE_STATE, NORMAL_TEXT);
 
-           rotate_left(FORWARD, wall == LEFT ? 0 : SPEED);
-           rotate_right(FORWARD, wall == LEFT ? SPEED : 0);
+           rotate_left(FORWARD, wall == LEFT ? 0 : speed_g);
+           rotate_right(FORWARD, wall == LEFT ? speed_g : 0);
 
            break;
        }
@@ -163,10 +165,16 @@ void MovingState__exit () {
     // stop motors
     set_robot_timer(0);
     exit = 0;
+    initialized = 0;
 }
 
 // update engine (se llama en el bucle principal)
 void MovingState__update() {
+
+    if (!initialized) {
+        initialized = 1;
+        init_wheels();
+    }
 
     if (exit) {
         stop_movement();
@@ -182,9 +190,9 @@ void MovingState__draw_screen () {
     // sensor values
     halLcdPrintLine("MOVING       ", TITLE, 0);
 
-    sprintf(cadena, "V %03d %03d %03d", sd_g.left, sd_g.center, sd_g.right);
+    sprintf(cadena, "S %03d %03d %03d", sd_g.left, sd_g.center, sd_g.right);
     halLcdPrintLine("  LFT CTR RGT", LINE_DIRS, NORMAL_TEXT);
-    halLcdPrintLine(cadena, LINE_SPEED, NORMAL_TEXT);
+    halLcdPrintLine(cadena, LINE_SENSORS, NORMAL_TEXT);
 
     if (wall == LEFT) {
         sprintf(cadena, "O %01d   %01d   %01d", sd_g.left > threshold_wall, sd_g.center > threshold_front, sd_g.right > threshold_wallnt);
@@ -194,7 +202,8 @@ void MovingState__draw_screen () {
         halLcdPrintLine(cadena, LINE_OBSTACLE, NORMAL_TEXT);
     }
 
-    //halLcdPrintLine(cadena, LINE_DEBUG, NORMAL_TEXT);
+    sprintf(cadena, "Speed: %04d    ", speed_g);
+    halLcdPrintLine(cadena, LINE_SPEED, NORMAL_TEXT);
 
     halLcdPrintLine(cadena_state, LINE_STATE, NORMAL_TEXT);
 
@@ -213,8 +222,23 @@ void MovingState__s1_pressed () {
 
 
 }
-void MovingState__up_pressed () {}
-void MovingState__down_pressed () {}
+
+void MovingState__up_pressed () {
+    speed_g += SPEED_INC;
+    if (speed_g > SPEED_MAX) {
+        speed_g = SPEED_MAX;
+    }
+    movingState_g.screen_changed = 1;
+}
+
+void MovingState__down_pressed () {
+    if (speed_g < SPEED_INC) {
+        speed_g = SPEED_MIN;
+    } else {
+        speed_g -= SPEED_INC;
+    }
+    movingState_g.screen_changed = 1;
+}
 
 void MovingState__left_pressed () {
     // Following LEFT wall

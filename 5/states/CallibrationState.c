@@ -8,20 +8,20 @@
 #include "CallibrationState.h"
 #include "MenuState.h"
 
-#define TITLE 0
-#define LEFT 3
-#define FRONT 4
-#define RIGHT 5
+#define L_TITLE 0
+#define L_LEFT 3
+#define L_FRONT 4
+#define L_RIGHT 5
 
 RobotState callibrationState_g; // singleton
 sensor_distance_t sd_g;
 
 uint8_t action = 0;
 
-#define NONE 0
-#define LEFT 1
-#define CENTER 2
-#define RIGHT 3
+#define C_NONE 0
+#define C_LEFT 1
+#define C_CENTER 2
+#define C_RIGHT 3
 
 char cadena[16];
 
@@ -38,21 +38,21 @@ void CallibrationState__exit () {}
 // update engine (se llama en el bucle principal)
 void CallibrationState__update() {
     switch (action) {
-    case NONE:
+    case C_NONE:
         break;
-    case LEFT:
+    case C_LEFT:
         sd_g = read_obstacle_distance();
 
         set_thr_left(sd_g.left);
         callibrationState_g.screen_changed = 1;
         break;
-    case RIGHT:
+    case C_RIGHT:
         sd_g = read_obstacle_distance();
 
         set_thr_right(sd_g.right);
         callibrationState_g.screen_changed = 1;
         break;
-    case CENTER:
+    case C_CENTER:
         sd_g = read_obstacle_distance();
 
         set_thr_front(sd_g.center);
@@ -62,22 +62,22 @@ void CallibrationState__update() {
         break;
     }
 
-    action = NONE;
+    action = C_NONE;
 
 }
 
 // screen
 void CallibrationState__draw_screen () {
-    halLcdPrintLine("CALIBRATION     ", TITLE, 0);
+    halLcdPrintLine("CALIBRATION     ", L_TITLE, 0);
 
     sprintf(cadena, "LEFT:  %3d      ", get_thr_left());
-    halLcdPrintLine(cadena, LEFT, 0);
+    halLcdPrintLine(cadena, L_LEFT, 0);
 
     sprintf(cadena, "FRONT: %3d      ", get_thr_front());
-    halLcdPrintLine(cadena, FRONT, 0);
+    halLcdPrintLine(cadena, L_FRONT, 0);
 
     sprintf(cadena, "RIGHT: %3d      ", get_thr_right());
-    halLcdPrintLine(cadena, RIGHT, 0);
+    halLcdPrintLine(cadena, L_RIGHT, 0);
 }
 
 // controls
@@ -89,15 +89,15 @@ void CallibrationState__s2_pressed () {
 void CallibrationState__s1_pressed () {}
 void CallibrationState__up_pressed () {
     // calibrar front
-    action = CENTER;}
+    action = C_CENTER;}
 void CallibrationState__down_pressed () {}
 void CallibrationState__left_pressed () {
     // calibrar left
-    action = LEFT;
+    action = C_LEFT;
 }
 void CallibrationState__right_pressed () {
     // calibrar right
-    action = RIGHT;
+    action = C_RIGHT;
 }
 void CallibrationState__center_pressed () {}
 

@@ -123,4 +123,9 @@ void set_robot_timer(bool flag);
  */
 bool stop_movement();
 
+/**
+ * Initialize the wheels; must be called before any movement
+ */
+bool init_wheels();
+
 #endif /* ROBOT_H_ */
