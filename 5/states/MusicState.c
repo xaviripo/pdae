@@ -9,10 +9,11 @@ RobotState musicState_g; // singleton
 StateContext* ctx_g;
 
 #define TITLE 0
-#define NOPTIONS 3
+#define NOPTIONS 4
 #define MEGALOVANIA 0
 #define SUPERMARIO 1
 #define WIICHNL 2
+#define PORTAL 3
 
 #define PLAYINH 4
 
@@ -28,6 +29,7 @@ void MusicState__init () {
     options[MEGALOVANIA] = "+ MEGALOVANIA";
     options[SUPERMARIO]  = "  SUPERMARIO ";
     options[WIICHNL]     = "  WIICHANNEL ";
+    options[PORTAL]      = "  PORTAL     ";
 
     musicState_g.screen_changed = 1;
 }
@@ -48,11 +50,13 @@ void MusicState__draw_screen () {
       options[MEGALOVANIA]   = (pointer==MEGALOVANIA)  ?"+ MEGALOVANIA":"  MEGALOVANIA";
       options[SUPERMARIO]     = (pointer==SUPERMARIO)    ?"+ SUPERMARIO ":"  SUPERMARIO ";
       options[WIICHNL] = (pointer==WIICHNL)? "+ WIICHANNEL ": "  WIICHANNEL ";
+      options[PORTAL] = (pointer==PORTAL)? "+ PORTAL     ": "  PORTAL     ";
 
       halLcdPrintLine("MUSIC        ", TITLE, 0);
       halLcdPrintLine(options[MEGALOVANIA], MEGALOVANIA+3, 0);
       halLcdPrintLine(options[SUPERMARIO], SUPERMARIO+3, 0);
       halLcdPrintLine(options[WIICHNL], WIICHNL+3, 0);
+      halLcdPrintLine(options[PORTAL], PORTAL+3, 0);
 
       halLcdPrintLine((playing)?"PLAYING":"PAUSED", WIICHNL, 0);
 
@@ -85,6 +89,9 @@ void MusicState__s1_pressed () {
         break;
     case WIICHNL:
         play_wii();
+        break;
+    case PORTAL:
+        play_portal();
         break;
     }
     playing=1;

@@ -144,6 +144,43 @@ Note wii[] = {
               {D_,BLAN},
 };
 
+
+Note portal[] = {
+    {G_,CORC},
+    {F_+SHARP,CORC},
+    {E_,CORC},
+    {E_,CORC},
+
+    {F_+SHARP,BLAN+BLAN},
+    // silencio blanca
+
+    {A_-SCALE,CORC},
+    {G_,CORC},
+    {F_+SHARP,CORC},
+    {E_,CORC},
+    {E_,CORC+CORC},
+
+    {F_+SHARP,NEGR+CORC},
+    {D_,NEGR},
+    {E_,CORC},
+    {A_-SCALE,CORC+BLAN},
+
+    {A_-SCALE,CORC},
+
+    {E_,NEGR},
+    {F_+SHARP,CORC},
+    {G_,CORC+NEGR},
+    {E_,CORC},
+    {C_+SHARP,CORC+CORC},
+
+    {D_,NEGR+CORC},
+    {E_,NEGR},
+    {A_-SCALE,CORC},
+    {A_-SCALE,CORC+CORC},
+
+    {F_+SHARP,NEGR+CORC}
+};
+
 /**
  * Sets the "tempo" of the sounds to last duration ms
  * @param duration - duration in ms
@@ -235,6 +272,10 @@ void play_megalo() {
 
 void play_wii() {
     set_music(8, wii);
+}
+
+void play_portal() {
+    set_music(25, portal);
 }
 
 void on_music_tick() {

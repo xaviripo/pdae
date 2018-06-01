@@ -37,6 +37,7 @@ void play_tloz();
 void play_scale();
 void play_megalo();
 void play_wii();
+void play_portal();
 
 void play_next_note();
 
