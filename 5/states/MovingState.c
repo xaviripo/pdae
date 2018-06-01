@@ -1,20 +1,23 @@
-#include <states/MenuState.h>
-#include <states/MovingState.h>
-#include "MenuState.h"
 #include <stdio.h>
+#include <string.h>
 
-#include "../dispatcher.h"
+#include "dispatcher.h"
 #include "robot/robot.h"
 
-#include "string.h"
+#include "states/MovingState.h"
+#include "states/MenuState.h"
+
+
+
 
 #define TITLE 0
 #define LINE_STATE 1
-#define LINE_SPEED 2
-#define LINE_OBSTACLE 3
-#define LINE_THRESHOLD 4
-#define LINE_WALL 5
-#define LINE_DEBUG 6
+#define LINE_DIRS 2
+#define LINE_SPEED 3
+#define LINE_OBSTACLE 4
+#define LINE_THRESHOLD 5
+#define LINE_WALL 6
+#define LINE_DEBUG 7
 
 #define SPEED 300 // base speed
 
@@ -30,6 +33,7 @@ typedef enum {
 sensor_distance_t sd_g;
 bool stop_g; // flag for when the robot is paused
 RobotState movingState_g; // singleton
+bool exit = 0; // have to exit?
 
 uint8_t sensor_wall, sensor_front, sensor_wallnt; // valor de los sensores
 uint8_t threshold_wall, threshold_front, threshold_wallnt;
@@ -92,8 +96,7 @@ void handle_state(state_t s) {
 
        case STOP: // no hace nada
            strcpy(cadena_state,"STOP           ");
-           rotate_left(FORWARD, 0);
-           rotate_right(FORWARD, 0);
+           stop_movement();
            break;
        case FOLLOW: // se mantiene a distancia cte de la pared
            strcpy(cadena_state,"FOLLOW         ");
@@ -152,18 +155,25 @@ void MovingState__init () {
     threshold_front = get_thr_front();
     threshold_wallnt = get_thr_right();
 
-    set_comm_timer_interrupt(1);
+    set_robot_timer(1);
 
     movingState_g.screen_changed = 1;
 }
 void MovingState__exit () {
     // stop motors
-    rotate_left(FORWARD, 0);
-    rotate_right(FORWARD, 0);
+    set_robot_timer(0);
+    exit = 0;
 }
 
 // update engine (se llama en el bucle principal)
 void MovingState__update() {
+
+    if (exit) {
+        stop_movement();
+        set_state(MenuState());
+        return;
+    }
+
     handle_state(calculate_state());
 }
 
@@ -173,7 +183,7 @@ void MovingState__draw_screen () {
     halLcdPrintLine("MOVING       ", TITLE, 0);
 
     sprintf(cadena, "V %03d %03d %03d", sd_g.left, sd_g.center, sd_g.right);
-    halLcdPrintLine("  LFT CTR RGT", LINE_SPEED-1, NORMAL_TEXT);
+    halLcdPrintLine("  LFT CTR RGT", LINE_DIRS, NORMAL_TEXT);
     halLcdPrintLine(cadena, LINE_SPEED, NORMAL_TEXT);
 
     if (wall == LEFT) {
@@ -184,7 +194,7 @@ void MovingState__draw_screen () {
         halLcdPrintLine(cadena, LINE_OBSTACLE, NORMAL_TEXT);
     }
 
-    halLcdPrintLine(cadena, LINE_DEBUG, NORMAL_TEXT);
+    //halLcdPrintLine(cadena, LINE_DEBUG, NORMAL_TEXT);
 
     halLcdPrintLine(cadena_state, LINE_STATE, NORMAL_TEXT);
 
@@ -195,7 +205,7 @@ void MovingState__draw_screen () {
 void MovingState__s2_pressed () {
     // S2 -> RETURN TO MENU
     //ctx_g->set_state(MenuState(ctx_g));
-    set_state(MenuState());
+    exit = 1;
 }
 void MovingState__s1_pressed () {
     // S1 -> PAUSE

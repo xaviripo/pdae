@@ -89,7 +89,6 @@ RobotState *MenuState() {
     menuState_g.down_pressed = &MenuState__down_pressed;
     menuState_g.left_pressed = &MenuState__left_pressed;
     menuState_g.right_pressed = &MenuState__right_pressed;
-    menuState_g.left_pressed = &MenuState__left_pressed;
     menuState_g.center_pressed = &MenuState__center_pressed;
 
     return &menuState_g;

@@ -111,4 +111,16 @@ void set_obstacle_threshold(uint8_t threshold);
  */
 uint8_t read_claps(void);
 
+/**
+ * Encapsular activación/desactivación de timer de sensores
+ * @param flag the flag
+ */
+void set_robot_timer(bool flag);
+
+/**
+ * Stop the wheels
+ * @return if the function worked correctly
+ */
+bool stop_movement();
+
 #endif /* ROBOT_H_ */

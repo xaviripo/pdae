@@ -1,13 +1,12 @@
+#include <stdio.h>
+
+#include "lib_PAE2.h"
+#include "robot/robot.h"
+#include "hal/timers.h"
+#include "dispatcher.h"
+
 #include "CallibrationState.h"
-
 #include "MenuState.h"
-
-#include "../robot/robot.h"
-#include "../lib_PAE2.h"
-#include "stdio.h"
-
-#include "../hal/timers.h"
-#include "../dispatcher.h"
 
 #define TITLE 0
 #define LEFT 3
@@ -16,6 +15,13 @@
 
 RobotState callibrationState_g; // singleton
 sensor_distance_t sd_g;
+
+uint8_t action = 0;
+
+#define NONE 0
+#define LEFT 1
+#define CENTER 2
+#define RIGHT 3
 
 char cadena[16];
 
@@ -30,7 +36,35 @@ void CallibrationState__init () {
 void CallibrationState__exit () {}
 
 // update engine (se llama en el bucle principal)
-void CallibrationState__update() {}
+void CallibrationState__update() {
+    switch (action) {
+    case NONE:
+        break;
+    case LEFT:
+        sd_g = read_obstacle_distance();
+
+        set_thr_left(sd_g.left);
+        callibrationState_g.screen_changed = 1;
+        break;
+    case RIGHT:
+        sd_g = read_obstacle_distance();
+
+        set_thr_right(sd_g.right);
+        callibrationState_g.screen_changed = 1;
+        break;
+    case CENTER:
+        sd_g = read_obstacle_distance();
+
+        set_thr_front(sd_g.center);
+        callibrationState_g.screen_changed = 1;
+        break;
+    default:
+        break;
+    }
+
+    action = NONE;
+
+}
 
 // screen
 void CallibrationState__draw_screen () {
@@ -53,27 +87,17 @@ void CallibrationState__s2_pressed () {
     //ctx_g->set_state(MenuState(ctx_g));
 }
 void CallibrationState__s1_pressed () {}
-void CallibrationState__up_pressed () {}
-void CallibrationState__down_pressed () {
+void CallibrationState__up_pressed () {
     // calibrar front
-    sd_g = read_obstacle_distance();
-
-    set_thr_front(sd_g.center);
-    callibrationState_g.screen_changed = 1;
-}
+    action = CENTER;}
+void CallibrationState__down_pressed () {}
 void CallibrationState__left_pressed () {
     // calibrar left
-    sd_g = read_obstacle_distance();
-
-    set_thr_left(sd_g.left);
-    callibrationState_g.screen_changed = 1;
+    action = LEFT;
 }
 void CallibrationState__right_pressed () {
     // calibrar right
-    sd_g = read_obstacle_distance();
-
-    set_thr_right(sd_g.right);
-    callibrationState_g.screen_changed = 1;
+    action = RIGHT;
 }
 void CallibrationState__center_pressed () {}
 
@@ -88,7 +112,6 @@ RobotState *CallibrationState() {
     callibrationState_g.down_pressed = &CallibrationState__down_pressed;
     callibrationState_g.left_pressed = &CallibrationState__left_pressed;
     callibrationState_g.right_pressed = &CallibrationState__right_pressed;
-    callibrationState_g.left_pressed = &CallibrationState__left_pressed;
     callibrationState_g.center_pressed = &CallibrationState__center_pressed;
 
     return &callibrationState_g;

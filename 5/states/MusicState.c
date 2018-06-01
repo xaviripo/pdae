@@ -1,10 +1,9 @@
+#include "lib_PAE2.h"
+#include "dispatcher.h"
+#include "robot/sound.h"
+
 #include "MusicState.h"
 #include "MenuState.h"
-
-#include "../lib_PAE2.h"
-
-#include "../dispatcher.h"
-#include "../robot/sound.h"
 
 RobotState musicState_g; // singleton
 StateContext* ctx_g;
@@ -119,7 +118,6 @@ RobotState *MusicState() {
     musicState_g.down_pressed = &MusicState__down_pressed;
     musicState_g.left_pressed = &MusicState__left_pressed;
     musicState_g.right_pressed = &MusicState__right_pressed;
-    musicState_g.left_pressed = &MusicState__left_pressed;
     musicState_g.center_pressed = &MusicState__center_pressed;
 
     return &musicState_g;

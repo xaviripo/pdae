@@ -241,4 +241,8 @@ uint8_t read_claps(void) {
     return get_status().status[5];
 }
 
+void set_robot_timer(bool flag) {
+    set_comm_timer_interrupt(flag);
+}
+
 
